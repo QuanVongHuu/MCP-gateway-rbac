@@ -4,11 +4,11 @@ You don't need to go hunting for external tutorials for most of this. Your own `
 
 ## 1. Mock backend MCP servers — already in your repo, no building needed
 
-`mcp-context-forge/mcp-servers/` ships ready-to-run sample servers you can register with the gateway right now:
+`mcp-context-forge/mcp-servers/python/` ships ready-to-run sample servers you can register with the gateway right now:
 
-- `fast-time-server` (Go) — dead simple, good first target
-- Python: `qr_code_server`, `data_analysis_server`, `graphviz_server`, `mcp_eval_server`, `mcp-rss-search`, `output_schema_test_server`, `url_to_markdown_server`
-- Rust: `slow-time-server` (simulates latency/failures — useful once you're testing resilience), `benchmark-server` (dynamic tools for scale testing), `filesystem-server`
+- `data_analysis_server`, `graphviz_server`, `mcp_eval_server`, `mcp-rss-search`, `output_schema_test_server`, `url_to_markdown_server`
+
+Note: the Go `fast-time-server`, `qr_code_server`, and the Rust servers (`slow-time-server`, `benchmark-server`, `filesystem-server`) mentioned in upstream docs are **not** in this checkout. Use one of the Python samples above, or scaffold your own (§2).
 
 ## 2. Want your own mock server instead of the samples?
 
@@ -69,6 +69,45 @@ Given this project is specifically building RBAC on top of a gateway, there are 
 
 These lead to pretty different next steps — worth deciding which one is the immediate goal before scaffolding anything.
 
+## Project folder structure
+
+`mcp-context-forge/` is upstream code and is never edited. All our own work lives in sibling folders, one per phase of the task plan below. Each folder has its own `README.md` explaining what goes in it.
+
+```
+MCP-gateway-rbac/
+├── mcp-context-forge/        # upstream IBM ContextForge — don't edit (gitignored)
+├── servers/                  # Quân · Tasks 1–2 — mock backend MCP servers
+│   ├── risk-tools/
+│   ├── debt-collection-tools/
+│   └── admin-tools/          # admin-only tool that RBAC must block
+├── gateway/                  # Quân · Tasks 3, 5, 6 — deployment + setup
+│   ├── .env.example          # copy to .env (gitignored)
+│   └── register/             # numbered admin-API scripts: backends → teams → virtual servers
+├── rbac/                     # Quân · Tasks 4, 7, 15 — role model
+│   ├── role-tool-mapping.md  # team → tool table (human-readable)
+│   ├── roles.yaml            # same mapping as data, read by gateway/register/
+│   └── patches/              # changes to upstream code (e.g. rbac.py) as .patch files
+├── observability/            # Huy · Tasks 8–11, 16 — audit log, tracing, metrics
+│   ├── notes.md              # Task 8 architecture review
+│   ├── otel/
+│   ├── prometheus/
+│   └── dashboards/           # allow/deny view per team
+├── tests/                    # Quân & Huy · Tasks 12, 13, 17 — Inspector verification
+│   ├── inspector/            # --cli scripts, pointed at the gateway, not the raw backend
+│   └── expected/             # expected tools/list output per team, for diffing
+├── evidence/                 # Task 14 — raw material for the report
+│   ├── screenshots/
+│   ├── logs/
+│   └── configs/
+└── local-docs/               # research notes (this file)
+```
+
+Rules:
+
+- **Never edit inside `mcp-context-forge/`.** If Task 7 needs a code change, save it in `rbac/patches/`. This keeps upstream upgrades easy and separates our contribution from IBM's in the report.
+- **Setup is scripted, not clicked.** `gateway/register/` + `rbac/roles.yaml` should rebuild the whole setup, so Task 17's dry run is one command and Task 15 fixes show up as diffs.
+- **Blocked, not just hidden.** `tests/` scripts compare actual `tools/list` / `tools/call` results against `tests/expected/` — that's the evidence for Task 13.
+
 ## Detailed Task Plan
 
 Two-person split: **Quân** builds the RBAC layer (backend → gateway registration → virtual servers → permission checks). **Huy** builds the monitoring/observability layer (ContextForge's audit logging + OpenTelemetry/Prometheus, per [mcp-gateway_personal-doc.md](mcp-gateway_personal-doc.md)) and cross-verifies RBAC decisions actually get logged. Both converge for Inspector-based verification and final writeup.
@@ -77,7 +116,7 @@ Dates are bounded by **D3** in `Kien-tap-Deadlines.md` — the "Kiến tập t�
 
 | NO | TASK TITLE | DETAIL TASK | START DATE | DUE DATE | TASK OWNER | Reference/ LINK | PROCESS | NOTE |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Stand up mock backend server | Pick a sample from `mcp-servers/` (e.g. `fast-time-server`) and run it locally as the first backend MCP server | 18/9/2026 | 21/9/2026 | Quân | [mcp-gateway-guideline.md §1](mcp-gateway-guideline.md); `mcp-context-forge/mcp-servers/` | Not Started | Foundation for everything downstream |
+| 1 | Stand up mock backend server | Pick a sample from `mcp-servers/python/` (e.g. `data_analysis_server`) or scaffold one into `servers/`, and run it locally as the first backend MCP server | 18/9/2026 | 21/9/2026 | Quân | [mcp-gateway-guideline.md §1](mcp-gateway-guideline.md); `mcp-context-forge/mcp-servers/` | Not Started | Foundation for everything downstream |
 | 2 | Add role-differentiated tool | Scaffold a second mock server (or extend the first) with an "admin-only" tool so RBAC has something real to gate | 22/9/2026 | 23/9/2026 | Quân | [mcp-gateway-guideline.md §2](mcp-gateway-guideline.md); `mcp-servers/scaffold-python-server.sh` | Not Started | Depends on Task 1; needed to demo option (b), not just plumbing |
 | 3 | Register backend as a Gateway | Point ContextForge at the mock server(s) so they become gateway sources | 24/9/2026 | 25/9/2026 | Quân | [mcp-gateway_personal-doc.md](mcp-gateway_personal-doc.md); https://github.com/IBM/mcp-context-forge | Not Started | Depends on Tasks 1–2 |
 | 4 | Define team/role mapping | Draft the 4-team → tool-scope mapping from the README table (Risk, Data governance, Project dev, Debt collection) against the tools actually available | 24/9/2026 | 26/9/2026 | Quân | [README.md](../README.md) Role → tool mapping table; [mcp-gateway_personal-doc.md §3](mcp-gateway_personal-doc.md) | Not Started | Fills the README's TBD mapping table |
