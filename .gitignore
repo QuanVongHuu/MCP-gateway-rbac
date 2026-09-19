@@ -1,0 +1,7 @@
+mcp-context-forge
+.env
+*.db
+node_modules/
+__pycache__/
+.venv/
+local-docs
