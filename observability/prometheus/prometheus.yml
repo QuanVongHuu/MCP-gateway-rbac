@@ -1,2 +1,0 @@
-# Prometheus scrape config for the gateway. Not written yet.
-scrape_configs: []
