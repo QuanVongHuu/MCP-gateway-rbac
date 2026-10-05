@@ -1,0 +1,18 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: jwt-mcp-rbac
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: agentgateway.dev
+    kind: AgentgatewayBackend
+    name: kubernetes-mcp
+  backend:
+    mcp:
+      authorization:
+        action: Allow
+        policy:
+          matchExpressions:
+          - 'jwt.sub == "bob"'
+          - 'jwt.sub == "alice" && (mcp.tool.name == "pods_list" || mcp.tool.name == "namespaces_list" || mcp.tool.name == "nodes_top")'
