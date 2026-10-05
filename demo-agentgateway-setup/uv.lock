@@ -1,0 +1,20 @@
+version = 1
+revision = 3
+requires-python = ">=3.13"
+
+[[package]]
+name = "agentgateway-setup"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "helm" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "helm", specifier = ">=0.4" }]
+
+[[package]]
+name = "helm"
+version = "0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/29/88/58fc0e0305c468a03fff62808c819589a9e72f82b070254a38288eecd581/helm-0.4.tar.bz2", hash = "sha256:dfa6fe407b3fae7e987ec7901aa8ec4018ee3bbb4acec060dcf31d431de27329", size = 23085, upload-time = "2011-04-25T17:58:02.223Z" }
