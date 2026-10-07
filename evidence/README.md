@@ -1,7 +1,12 @@
-# evidence/ — raw material for the report (Task 14)
+# evidence
 
-- `screenshots/` — Inspector and dashboard screenshots
-- `logs/` — audit-log excerpts showing allow/deny decisions
-- `configs/` — snapshots of what was actually deployed
+**What:** proof that it works, for the report: screenshots, captured logs, test output.
 
-Name files with a date prefix, e.g. `2026-10-09_team-risk_tools-list.png`.
+**Contains (planned):**
+- Screenshots of the Tool Playground / Inspector per role.
+- Access-log excerpts showing allow and deny.
+- Test run output.
+
+**README mapping:** *Folder structure* → `evidence/`. Not a deployment layer; it is what you show someone.
+
+**Rule:** keep it small. Gitignore large files, and never include tokens or secrets in screenshots or logs.
