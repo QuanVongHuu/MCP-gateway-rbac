@@ -1,0 +1,275 @@
+# Mock MCP backends: one image (mcp-mocks:dev), five Deployments + ClusterIP Services in namespace mcp.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radar
+  namespace: mcp
+  labels:
+    app: radar
+    role: mcp-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: radar
+  template:
+    metadata:
+      labels:
+        app: radar
+        role: mcp-mock
+    spec:
+      containers:
+      - name: radar
+        image: mcp-mocks:dev
+        imagePullPolicy: IfNotPresent   # image is loaded into kind, never pulled
+        args: ["radar/server.py"]
+        ports:
+        - name: http
+          containerPort: 8000
+        readinessProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 5
+        resources:
+          requests: {cpu: 20m, memory: 64Mi}
+          limits: {memory: 128Mi}
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: radar
+  namespace: mcp
+  labels:
+    app: radar
+spec:
+  selector:
+    app: radar
+  ports:
+  - port: 80
+    targetPort: http
+    appProtocol: agentgateway.dev/mcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-history
+  namespace: mcp
+  labels:
+    app: spark-history
+    role: mcp-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-history
+  template:
+    metadata:
+      labels:
+        app: spark-history
+        role: mcp-mock
+    spec:
+      containers:
+      - name: spark-history
+        image: mcp-mocks:dev
+        imagePullPolicy: IfNotPresent   # image is loaded into kind, never pulled
+        args: ["spark-history/server.py"]
+        ports:
+        - name: http
+          containerPort: 8000
+        readinessProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 5
+        resources:
+          requests: {cpu: 20m, memory: 64Mi}
+          limits: {memory: 128Mi}
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-history
+  namespace: mcp
+  labels:
+    app: spark-history
+spec:
+  selector:
+    app: spark-history
+  ports:
+  - port: 80
+    targetPort: http
+    appProtocol: agentgateway.dev/mcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openmetadata
+  namespace: mcp
+  labels:
+    app: openmetadata
+    role: mcp-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openmetadata
+  template:
+    metadata:
+      labels:
+        app: openmetadata
+        role: mcp-mock
+    spec:
+      containers:
+      - name: openmetadata
+        image: mcp-mocks:dev
+        imagePullPolicy: IfNotPresent   # image is loaded into kind, never pulled
+        args: ["openmetadata/server.py"]
+        ports:
+        - name: http
+          containerPort: 8000
+        readinessProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 5
+        resources:
+          requests: {cpu: 20m, memory: 64Mi}
+          limits: {memory: 128Mi}
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openmetadata
+  namespace: mcp
+  labels:
+    app: openmetadata
+spec:
+  selector:
+    app: openmetadata
+  ports:
+  - port: 80
+    targetPort: http
+    appProtocol: agentgateway.dev/mcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dbt
+  namespace: mcp
+  labels:
+    app: dbt
+    role: mcp-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dbt
+  template:
+    metadata:
+      labels:
+        app: dbt
+        role: mcp-mock
+    spec:
+      containers:
+      - name: dbt
+        image: mcp-mocks:dev
+        imagePullPolicy: IfNotPresent   # image is loaded into kind, never pulled
+        args: ["dbt/server.py"]
+        ports:
+        - name: http
+          containerPort: 8000
+        readinessProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 5
+        resources:
+          requests: {cpu: 20m, memory: 64Mi}
+          limits: {memory: 128Mi}
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dbt
+  namespace: mcp
+  labels:
+    app: dbt
+spec:
+  selector:
+    app: dbt
+  ports:
+  - port: 80
+    targetPort: http
+    appProtocol: agentgateway.dev/mcp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: airflow
+  namespace: mcp
+  labels:
+    app: airflow
+    role: mcp-mock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: airflow
+  template:
+    metadata:
+      labels:
+        app: airflow
+        role: mcp-mock
+    spec:
+      containers:
+      - name: airflow
+        image: mcp-mocks:dev
+        imagePullPolicy: IfNotPresent   # image is loaded into kind, never pulled
+        args: ["airflow/server.py"]
+        ports:
+        - name: http
+          containerPort: 8000
+        readinessProbe:
+          tcpSocket:
+            port: http
+          periodSeconds: 5
+        resources:
+          requests: {cpu: 20m, memory: 64Mi}
+          limits: {memory: 128Mi}
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: airflow
+  namespace: mcp
+  labels:
+    app: airflow
+spec:
+  selector:
+    app: airflow
+  ports:
+  - port: 80
+    targetPort: http
+    appProtocol: agentgateway.dev/mcp
