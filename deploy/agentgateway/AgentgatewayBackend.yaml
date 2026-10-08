@@ -1,4 +1,3 @@
-# One backend multiplexes every mock. Tool names reach clients as {target}_{tool}, e.g. radar_list_namespaces.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend
 metadata:
