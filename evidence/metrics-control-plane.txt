@@ -1,0 +1,7 @@
+agentgateway_controller_build_info{build_date="2026-08-27T17:16:13Z",git_commit="fe6732474a96a0363dfb9822859af4e9bab360fa",go_version="go1.27.0",platform="linux/amd64",version="1.5.0"} 1
+agentgateway_controller_reconcile_duration_seconds_sum{controller="gateway",name="agentgateway-proxy",namespace="agentgateway-system"} 0.27601343
+agentgateway_controller_reconcile_duration_seconds_count{controller="gateway",name="agentgateway-proxy",namespace="agentgateway-system"} 4
+agentgateway_controller_reconcile_duration_seconds_sum{controller="gatewayclass",name="",namespace=""} 0.005119904
+agentgateway_controller_reconcile_duration_seconds_count{controller="gatewayclass",name="",namespace=""} 1
+agentgateway_controller_reconcile_duration_seconds_sum{controller="gatewayclass",name="agentgateway",namespace=""} 0.009623789
+agentgateway_controller_reconcile_duration_seconds_count{controller="gatewayclass",name="agentgateway",namespace=""} 1

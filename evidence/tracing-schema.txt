@@ -1,0 +1,33 @@
+GROUP:      agentgateway.dev
+KIND:       AgentgatewayPolicy
+VERSION:    v1alpha1
+
+FIELD: tracing <Object>
+
+
+DESCRIPTION:
+    OpenTelemetry tracing settings.
+    
+FIELDS:
+  attributes	<Object>
+    add	<[]Object>
+      expression	<string> -required-
+      name	<string> -required-
+    remove	<[]string>
+  backendRef	<Object>
+    group	<string>
+    kind	<string>
+    name	<string> -required-
+    namespace	<string>
+    port	<integer>
+  clientSampling	<string>
+  filter	<string>
+  path	<string>
+  protocol	<string>
+  enum: GRPC, HTTP
+  randomSampling	<string>
+  resources	<[]Object>
+    expression	<string> -required-
+    name	<string> -required-
+  url	<string>
+
