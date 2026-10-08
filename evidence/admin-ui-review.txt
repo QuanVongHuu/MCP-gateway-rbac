@@ -1,0 +1,8 @@
+admin_ui=http://127.0.0.1:15000/ui/
+mode=read-only
+gateway=agentgateway-system/agentgateway-proxy
+route=mcp/mcp
+backend=mcp/mcp-backend
+policy=agentgateway-system/access-logs
+cel_data_engineer_manage_workload=true
+cel_analyst_manage_workload=false
