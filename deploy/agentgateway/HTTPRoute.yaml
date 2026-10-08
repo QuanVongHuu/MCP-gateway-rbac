@@ -13,6 +13,6 @@ spec:
         type: PathPrefix
         value: /mcp
     backendRefs:
-    - name: mcp
+    - name: mcp-backend
       group: agentgateway.dev
       kind: AgentgatewayBackend
