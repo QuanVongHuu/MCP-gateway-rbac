@@ -1,0 +1,68 @@
+# Expected tools/list per test user for rbac/tool-access.yaml.
+# A tool not listed for a user is denied: hidden from tools/list and rejected on tools/call.
+analyst.user:        # analyst
+- openmetadata_get_entity_details
+- openmetadata_get_entity_lineage
+- openmetadata_search_metadata
+
+engineer.user:       # data_engineer (group data-team)
+- airflow_get_dag_run
+- airflow_get_task_logs
+- airflow_list_dags
+- dbt_get_lineage
+- dbt_get_model_health
+- dbt_list_metrics
+- dbt_query_metrics
+- openmetadata_get_entity_details
+- openmetadata_get_entity_lineage
+- openmetadata_search_metadata
+- radar_get_pod_logs
+- radar_list_namespaces
+- radar_list_resources
+- spark-history_get_job_bottlenecks
+- spark-history_get_stage
+- spark-history_list_applications
+
+multi.user:          # data_engineer + bi_engineer (groups data-team, bi-team)
+- airflow_get_dag_run
+- airflow_get_task_logs
+- airflow_list_dags
+- dbt_get_lineage
+- dbt_get_model_health
+- dbt_list_metrics
+- dbt_query_metrics
+- openmetadata_get_entity_details
+- openmetadata_get_entity_lineage
+- openmetadata_patch_entity
+- openmetadata_search_metadata
+- radar_get_pod_logs
+- radar_list_namespaces
+- radar_list_resources
+- spark-history_get_job_bottlenecks
+- spark-history_get_stage
+- spark-history_list_applications
+
+admin.user:          # data_admin
+- airflow_get_dag_run
+- airflow_get_task_logs
+- airflow_list_dags
+- airflow_pause_dag
+- airflow_trigger_dag
+- dbt_get_lineage
+- dbt_get_model_health
+- dbt_list_metrics
+- dbt_query_metrics
+- dbt_test
+- openmetadata_get_entity_details
+- openmetadata_get_entity_lineage
+- openmetadata_patch_entity
+- openmetadata_search_metadata
+- radar_get_pod_logs
+- radar_list_namespaces
+- radar_list_resources
+- radar_manage_workload
+- spark-history_get_job_bottlenecks
+- spark-history_get_stage
+- spark-history_list_applications
+
+nobody.user: []      # no roles
