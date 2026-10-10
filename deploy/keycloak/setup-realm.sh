@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Builds the test realm `mcp` (guideline §3). Dev only: test users' passwords are the part of the
-# username before the dot (multi.user / multi).
+# Builds the test realm `mcp` (guideline §3). Dev only: every test user gets TEST_USER_PASSWORD
+# (default `password`); scripts/get-token.sh uses the same variable.
+# Re-running deletes and rebuilds the realm: new signing keys and a new mcp-gateway client secret.
+# Run scripts/up.sh afterwards to copy the secret to the gateway; old tokens stop working.
 set -euo pipefail
 export MSYS_NO_PATHCONV=1   # Git Bash on Windows rewrites /opt/... paths without this
 
@@ -31,6 +33,17 @@ done
 
 # 3. openmetadata: only exists so exchanged tokens can be addressed to it
 kc create clients -r $REALM -s clientId=openmetadata -s publicClient=false
+
+# 3b. Make the openmetadata audience available to mcp-gateway. Without this scope the token
+# exchange fails with "Requested audience not available: openmetadata".
+SCOPE=$(kc create client-scopes -r $REALM -i -s name=openmetadata-audience -s protocol=openid-connect)
+kc create "client-scopes/$SCOPE/protocol-mappers/models" -r $REALM \
+  -s name=audience-openmetadata \
+  -s protocol=openid-connect \
+  -s protocolMapper=oidc-audience-mapper \
+  -s 'config."included.client.audience"=openmetadata' \
+  -s 'config."access.token.claim"=true'
+kc update "clients/$GW/default-client-scopes/$SCOPE" -r $REALM
 
 # 4. mcp-cli: public client for test logins
 CLI=$(kc create clients -r $REALM -i \

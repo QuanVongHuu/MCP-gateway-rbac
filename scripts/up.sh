@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Applies the layers in build order (README "How to leverage it"; guideline §2 to §7). Safe to re-run.
 #
-# Expects guideline §1 already done: the kind cluster, the Gateway API CRDs and the agentgateway
-# Helm charts. It does not start the real servers: AgentgatewayBackend.yaml points radar,
+# Expects the kind cluster, the Gateway API CRDs, the agentgateway Helm charts and the mock image
+# (README "Quick start"). It does not start the real servers: AgentgatewayBackend.yaml points radar,
 # openmetadata and spark-history at them, and the gateway fails for every caller while one target
-# is down. Start them with deploy/real-servers/README.md, or set those targets back to the mocks.
+# is down. ./run.sh at the repo root runs this script and starts them.
 set -euo pipefail
 export MSYS_NO_PATHCONV=1   # Git Bash on Windows rewrites /opt/... paths without this
 cd "$(dirname "$0")/.."
@@ -24,7 +24,12 @@ until kubectl exec -n keycloak deploy/keycloak -- /opt/keycloak/bin/kcadm.sh con
     --server http://localhost:8080 --realm master --user admin --password admin >/dev/null 2>&1; do
   sleep 5
 done
-bash deploy/keycloak/setup-realm.sh
+# setup-realm.sh deletes and rebuilds the realm, so only run it when the realm is missing
+if kubectl exec -n keycloak deploy/keycloak -- /opt/keycloak/bin/kcadm.sh get realms/mcp >/dev/null 2>&1; then
+  echo "realm mcp exists, keeping it (rebuild: bash deploy/keycloak/setup-realm.sh, then this script)"
+else
+  bash deploy/keycloak/setup-realm.sh
+fi
 
 step "4-5. authentication, caller identity, token exchange"
 # the gateway's client secret for token exchange, copied from Keycloak so it follows a rebuilt realm
@@ -47,4 +52,4 @@ kubectl apply -f observability/access-logs/policy.yaml
 echo
 kubectl get agentgatewaypolicy -A
 echo
-echo "Next: start the two port-forwards, then scripts/run-tests.sh"
+echo "Layers applied."
