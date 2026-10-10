@@ -2,8 +2,9 @@
 
 **What:** the policy: which role may call which MCP tool. It is the source of truth for authorization, kept apart from infrastructure because it changes often and needs its own review.
 
-**Contains (planned):**
+**Contains:**
 - `tool-access.yaml`: an `AgentgatewayPolicy` on the MCP backend with `Allow` match expressions.
+- `policy-overlap-experiment.md`: the test report on how overlapping policies combine, and why the policy is one Allow policy on the backend.
 
 **Rules of the format:**
 - every rule checks a role, guarded by `has(jwt.roles)`
