@@ -5,8 +5,7 @@
 # Needs the Keycloak port-forward on 8002 and OpenMetadata on localhost:8585.
 set -euo pipefail
 
-TOKEN=$(curl -s -X POST "http://localhost:8002/realms/mcp/protocol/openid-connect/token" \
-  -d grant_type=password -d client_id=mcp-cli -d username=admin.user -d password=admin | jq -r .access_token)
+TOKEN=$("$(dirname "$0")/../../../scripts/get-token.sh" admin.user)
 
 put() {
   curl -s -o /dev/null -w "$1 -> %{http_code}\n" -X PUT "http://localhost:8585/api/v1/$1" \

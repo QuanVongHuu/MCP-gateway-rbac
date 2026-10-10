@@ -136,7 +136,7 @@ Check (build order step 2): with no auth yet, `tools/list` at `http://localhost:
 ```bash
 kubectl apply -f deploy/keycloak/keycloak.yaml
 kubectl rollout status deploy/keycloak -n keycloak
-bash deploy/keycloak/setup-realm.sh          # about a minute; does nothing if realm mcp already exists
+bash deploy/keycloak/setup-realm.sh          # about a minute; deletes and rebuilds realm mcp (then run scripts/up.sh to copy the new client secret)
 kubectl port-forward -n keycloak svc/keycloak 8002:80
 ```
 
@@ -151,7 +151,7 @@ kubectl port-forward -n keycloak svc/keycloak 8002:80
   - Audience mapper → adds `mcp-gateway` to `aud`.
   - User Client Role mapper → client `mcp-gateway`, token claim name `roles`, multivalued, added to the access token. It includes roles inherited from groups.
 - **Groups**, standing in for company directory groups: `data-team` → role `data_engineer`, `bi-team` → role `bi_engineer`.
-- **Test users** ([docs/03 §5](../docs/03-implementation-plan.md)): `analyst.user` (role `analyst`, direct), `engineer.user` (group `data-team`), `multi.user` (groups `data-team` and `bi-team`), `admin.user` (role `data_admin`, direct), `nobody.user` (nothing). Each password is the part of the username before the dot (`engineer.user` / `engineer`).
+- **Test users** ([docs/03 §5](../docs/03-implementation-plan.md)): `analyst.user` (role `analyst`, direct), `engineer.user` (group `data-team`), `multi.user` (groups `data-team` and `bi-team`), `admin.user` (role `data_admin`, direct), `nobody.user` (nothing). Every test user has the password `password` (`TEST_USER_PASSWORD` in `setup-realm.sh` and `scripts/get-token.sh`).
 - **Client scope `openmetadata-audience`:** an Audience mapper for `openmetadata`, set as a default scope of `mcp-gateway`. It makes that audience available for token exchange (§5).
 
 **Changing roles later:** a new role is a new client role on `mcp-gateway`; giving it to people is a group or user role mapping. Neither needs a gateway change until a rule uses the role.
@@ -160,7 +160,7 @@ Get a token and check its claims (build order step 3):
 
 ```bash
 TOKEN=$(curl -s -X POST "http://localhost:8002/realms/mcp/protocol/openid-connect/token" \
-  -d grant_type=password -d client_id=mcp-cli -d username=multi.user -d password=multi | jq -r .access_token)
+  -d grant_type=password -d client_id=mcp-cli -d username=multi.user -d password=password | jq -r .access_token)
 echo "$TOKEN" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{iss, aud, preferred_username, roles}'
 # expect iss http://localhost:8002/realms/mcp, aud ["mcp-gateway", "account"], roles ["bi_engineer", "data_engineer"]
 # nobody.user has no roles claim at all, which is why every rule starts with has(jwt.roles)
@@ -525,7 +525,7 @@ The forged-header test (**verified 9/10/2026**; expected results in §5):
 
 ```bash
 TOKEN=$(curl -s -X POST "http://localhost:8002/realms/mcp/protocol/openid-connect/token" \
-  -d grant_type=password -d client_id=mcp-cli -d username=engineer.user -d password=engineer | jq -r .access_token)
+  -d grant_type=password -d client_id=mcp-cli -d username=engineer.user -d password=password | jq -r .access_token)
 B=(-H "Content-Type: application/json" -H "Accept: application/json, text/event-stream")
 
 SID=$(curl -si http://localhost:8080/mcp -H "Authorization: Bearer $TOKEN" "${B[@]}" \

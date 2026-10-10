@@ -7,7 +7,66 @@ Deploys [agentgateway](https://agentgateway.dev) (Helm charts v1.5.0) on a local
 
 Keycloak is the identity provider. **We write no gateway code**: the project is configuration (YAML), mock backends and tests.
 
-> **Status:** the configs in `local-docs/mcp-gateway-guideline.md` are a starting point checked against vendor docs, **not yet run**. Fields marked *check* there must be confirmed against the installed versions.
+> **Status (10/10/2026):** running and tested on kind v0.33.0 with agentgateway v1.5.0 and Keycloak 26.2. The targets `radar`, `openmetadata` and `spark-history` are the real servers; `dbt` and `airflow` are mocks. `./run.sh test` passes 30 checks.
+
+## Quick start
+
+You need `kind`, `kubectl`, `helm`, Docker, `curl`, `jq` and Node 22.19+, and about 8 GB of memory for Docker. On Windows, run everything in Git Bash.
+
+Steps 1 to 3 are done once. Step 4 is the only one you repeat.
+
+**1. Create the cluster.** The name must be `gatewayapi`: the OpenMetadata container reaches Keycloak through the node `gatewayapi-control-plane`.
+
+```bash
+kind create cluster --name gatewayapi
+```
+
+**2. Install the Gateway API CRDs and agentgateway** (Helm charts v1.5.0).
+
+```bash
+kubectl apply --server-side --force-conflicts \
+  -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.0/standard-install.yaml
+
+helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds \
+  --create-namespace --namespace agentgateway-system --version v1.5.0
+helm upgrade -i agentgateway oci://cr.agentgateway.dev/charts/agentgateway \
+  --namespace agentgateway-system --version v1.5.0 --wait
+```
+
+**3. Build the mock image and load it into the cluster.** Repeat this step after changing anything in `servers/`.
+
+```bash
+docker build -t mcp-mocks:dev servers
+kind load docker-image mcp-mocks:dev --name gatewayapi
+```
+
+**4. Start everything.**
+
+```bash
+./run.sh          # or: ./run.sh test   to run the tests at the end
+```
+
+`run.sh` checks steps 1 to 3 and tells you which one is missing. Then it applies the Kubernetes layers, installs the real radar, starts OpenMetadata and Spark History Server MCP in Docker, starts two port-forwards in the background and waits until the gateway answers. The first run downloads about 4 GB and takes several minutes; later runs only check and restart what is missing. It is safe to re-run, and it is also how you bring the system back after a reboot or a Docker restart.
+
+When it finishes:
+
+| What | Where |
+|---|---|
+| MCP endpoint | `http://localhost:8080/mcp`, with `Authorization: Bearer <token>` |
+| A token | `TOKEN=$(scripts/get-token.sh engineer.user)` |
+| Keycloak admin console | `http://localhost:8002`, `admin` / `admin` |
+| OpenMetadata | `http://localhost:8585` |
+| Tests | `bash scripts/run-tests.sh` |
+
+**Stop and clean up:**
+
+```bash
+docker compose -p openmetadata-real down      # add -v to delete its data too
+docker compose -p spark-history-real down
+kind delete cluster --name gatewayapi
+```
+
+Stopping only the Docker containers breaks the gateway for every caller, because it connects to every target when a session starts. Start them again with `./run.sh`.
 
 ## Architecture
 
@@ -96,17 +155,19 @@ deploy/            everything `kubectl apply`-able, one folder per concern
   auth/              JWT authentication + identity-header transformation
   identity/          token exchange for backends that need it
   network/           NetworkPolicy: backends accept only the gateway
+  real-servers/      the real radar (Helm), OpenMetadata and Spark History Server MCP (Docker)
 rbac/
   tool-access.yaml   source of truth: role -> tools
-servers/           mock MCP backends, one folder per target name
-  radar/  spark-history/  openmetadata/
+servers/           mock MCP backends, one folder per target name, built into one image
+  radar/  spark-history/  openmetadata/  dbt/  airflow/
 observability/
   access-logs/       caller, roles and MCP fields on every log line
 tests/
   expected/          the role x tool allow/deny matrix, as data
   inspector/         scripted MCP Inspector calls per test user
   curl/              hand-built edge cases (forged headers, batches)
-scripts/           get a token, run all tests
+scripts/           get a token, apply the layers in order, run all tests
+run.sh             start the whole system with one command (Quick start)
 docs/              architecture and implementation plan
 local-docs/        deployment guideline (commands per step) and personal notes
 evidence/          screenshots/logs for the report
@@ -116,7 +177,7 @@ Each folder matches one checkpoint or build step, so a failing test points to on
 
 ## How to leverage it
 
-Follow the build order in [local-docs/mcp-gateway-guideline.md](local-docs/mcp-gateway-guideline.md). Verify each layer before adding the next:
+`./run.sh` builds all of this in one go (Quick start). To build it by hand and understand each layer, follow the build order in [local-docs/mcp-gateway-guideline.md](local-docs/mcp-gateway-guideline.md) and verify each layer before adding the next; `scripts/up.sh` is the same order as code:
 
 1. **Install** the Gateway API CRDs, agentgateway and the `Gateway` (guideline §1). Check: the proxy is running and port-forward to `8080` works.
 2. **Connect backends** (§2). Check: with no auth, `tools/list` at `http://localhost:8080/mcp` shows every tool as `{target}_{tool}`.
@@ -134,7 +195,7 @@ Follow the build order in [local-docs/mcp-gateway-guideline.md](local-docs/mcp-g
 | Add a new role | New client role on `mcp-gateway` in Keycloak; add a rule only when it needs access |
 | Put someone in a role | Group or user role mapping in Keycloak. No gateway change |
 | Add a backend (e.g. Airflow, dbt) | `servers/<name>/`, a Service with `appProtocol: agentgateway.dev/mcp`, a new entry under `targets`, an identity mode, rules and tests |
-| Swap a mock for the real server | Point the Service at it. Target name, rules and tests stay the same |
+| Swap a mock for the real server | Change the target's `host` and `port` in `deploy/agentgateway/AgentgatewayBackend.yaml` (see `deploy/real-servers/`). Target name and rules stay the same; regenerate `tests/expected/tools.json` |
 
 Keep the target name identical across the backend target, the tool prefix, the RBAC rule, `servers/<name>/` and the tests.
 
@@ -148,12 +209,15 @@ Keep the target name identical across the backend target, the tool prefix, the R
 | `admin.user` | `data_admin` (direct) |
 | `nobody.user` | none |
 
+Every test user has the password `password` (`TEST_USER_PASSWORD` in `deploy/keycloak/setup-realm.sh`).
+
 ### Trying it
 
 Always point clients at the gateway's `/mcp`, never at a backend, and send a token:
 
 ```bash
-npx @modelcontextprotocol/inspector --cli "http://localhost:8080/mcp" --transport http \
+TOKEN=$(scripts/get-token.sh engineer.user)
+npx -y @modelcontextprotocol/inspector@0.21.2 --cli "http://localhost:8080/mcp" --transport http \
   --header "Authorization: Bearer $TOKEN" --method tools/list
 ```
 
@@ -161,7 +225,7 @@ The admin UI at `http://localhost:15000/ui/` is read-only and for debugging only
 
 ## Requirements
 
-`kind`, `kubectl`, `helm`, Node 22.19+ (MCP Inspector), `curl`, `jq`. Keycloak ≥ 26.2 (needed for standard token exchange).
+`kind`, `kubectl`, `helm`, Docker with Compose, Node 22.19+ (MCP Inspector), `curl`, `jq`. Keycloak ≥ 26.2 (needed for standard token exchange).
 
 ## Docs
 
