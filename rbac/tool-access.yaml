@@ -1,6 +1,3 @@
-# Which gateway role may see and call which MCP tool (guideline §4). Source of truth for authorization.
-# Rules are OR-ed; a caller with no matching rule gets nothing. mcp.tool.name is the unprefixed name.
-# When this changes, update tests/expected/ in the same pull request.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
@@ -17,15 +14,15 @@ spec:
         action: Allow
         policy:
           matchExpressions:
-          # analyst: OpenMetadata read tools
+          # analyst — OpenMetadata read tools
           - 'has(jwt.roles) && "analyst" in jwt.roles && mcp.tool.target == "openmetadata" && mcp.tool.name in ["search_metadata", "get_entity_details", "get_entity_lineage"]'
-          # bi_engineer: OpenMetadata read tools + patch_entity
+          # bi_engineer — OpenMetadata read tools + patch_entity
           - 'has(jwt.roles) && "bi_engineer" in jwt.roles && mcp.tool.target == "openmetadata" && mcp.tool.name in ["search_metadata", "get_entity_details", "get_entity_lineage", "patch_entity"]'
-          # data_engineer: read tools of radar, openmetadata, dbt and airflow; all of spark-history
+          # data_engineer — radar read tools, all of spark-history, OpenMetadata read tools, dbt and airflow read tools
           - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "radar" && mcp.tool.name in ["list_namespaces", "list_resources", "get_pod_logs"]'
           - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "spark-history"'
           - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "openmetadata" && mcp.tool.name in ["search_metadata", "get_entity_details", "get_entity_lineage"]'
           - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "dbt" && mcp.tool.name in ["list_metrics", "query_metrics", "get_model_health", "get_lineage"]'
           - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "airflow" && mcp.tool.name in ["list_dags", "get_dag_run", "get_task_logs"]'
-          # data_admin: everything, including backends added later
+          # data_admin — everything, including backends added later
           - 'has(jwt.roles) && "data_admin" in jwt.roles'
