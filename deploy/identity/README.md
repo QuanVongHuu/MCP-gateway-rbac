@@ -7,6 +7,6 @@
 
 **README mapping:** the token-exchange half of the *Identity* checkpoint. Build step 5, guideline §5.
 
-**Open question:** the policy field path and whether it can target one MCP target are marked *check* in the guideline. If it only works on a whole `AgentgatewayBackend`, OpenMetadata needs its own backend and route.
+**Answered 9/10/2026:** the field is `backend.auth.oauthTokenExchange`, and `sectionName` on the `AgentgatewayBackend` target limits it to one MCP target, so OpenMetadata stays in the shared backend. It depends on `deploy/auth/jwt.yaml` (which hands over the caller's token in `x-caller-token`) and on Secret `mcp-gateway-client-secret` in namespace `mcp`, which is not in git.
 
 **Check:** the exchange works against Keycloak directly with `curl` first, then through the gateway.

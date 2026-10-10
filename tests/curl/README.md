@@ -2,8 +2,9 @@
 
 **What:** edge cases that need a hand-built request, which a proper MCP client would never send.
 
-**Contains (planned):**
-- `curl` scripts for: duplicate `"name"` keys, JSON-RPC batches, forged `X-Forwarded-User` / `X-Forwarded-Groups` headers (docs/03 §5 cases 9 and 13).
+**Contains:**
+- `run.sh`: no token, a token that is not a JWT, forged `X-Forwarded-User` / `X-Forwarded-Groups` / `X-Caller-Token` headers, duplicate `"name"` keys, and a JSON-RPC batch (docs/03 §5 cases 9 and 13). Run it alone or through `scripts/run-tests.sh`.
+- The forged-header case reads `seen_by_mock` from the response, so it calls a `dbt` tool: `dbt` must still be a mock target.
 
 **README mapping:** *Identity* and *Authorization* checkpoints; guideline §8.
 
