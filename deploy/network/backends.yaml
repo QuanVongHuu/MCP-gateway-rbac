@@ -1,0 +1,21 @@
+# The gateway is the only way into the backends (guideline §6).
+#
+# Identity headers and tool access are enforced at the gateway, so they only mean something if nothing
+# else can reach a backend. Without this policy any pod in the cluster can call a backend directly,
+# forge X-Forwarded-User and use tools its user is denied.
+#
+# Applies to every pod in namespace `mcp`, including pods added later. Pods in `mcp` cannot call each
+# other either. Needs a CNI that enforces NetworkPolicy.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backends-from-gateway-only
+  namespace: mcp
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: agentgateway-system

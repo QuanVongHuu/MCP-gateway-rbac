@@ -1,0 +1,12 @@
+# Real radar (skyhook-io/radar chart 1.16.0) in namespace mcp, as release radar-real (guideline §9).
+#   helm upgrade -i radar-real skyhook/radar --version 1.16.0 -n mcp -f values.yaml
+#
+# Proxy mode: radar reads the caller from the gateway's identity headers and impersonates that
+# user and groups against the Kubernetes API, so Kubernetes RBAC (rbac.yaml) decides what each
+# caller can see or change. It trusts those headers blindly; the NetworkPolicy of §6 is what stops
+# other pods from forging them.
+auth:
+  mode: proxy
+  proxy:
+    userHeader: X-Forwarded-User
+    groupsHeader: X-Forwarded-Groups

@@ -21,16 +21,24 @@ spec:
     spec:
       containers:
       - name: keycloak
-        image: quay.io/keycloak/keycloak:21.1.1
+        image: quay.io/keycloak/keycloak:26.2
         args:
           - start-dev
         env:
-          - name: KEYCLOAK_ADMIN
+          - name: KC_HOSTNAME
+            value: http://localhost:8002
+          - name: KC_BOOTSTRAP_ADMIN_USERNAME
             value: admin
-          - name: KEYCLOAK_ADMIN_PASSWORD
+          - name: KC_BOOTSTRAP_ADMIN_PASSWORD
             value: admin
         ports:
           - containerPort: 8080
+        volumeMounts:
+          - name: data
+            mountPath: /opt/keycloak/data
+      volumes:
+        - name: data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

@@ -1,0 +1,48 @@
+# Real Spark History Server MCP (kubeflow/mcp-apache-spark-history-server 1.0.1) in Docker, behind
+# the gateway as target `spark-history` (guideline §9). Start with ./up.sh.
+#
+# - spark-history-server serves the three sample event logs of the upstream project (./events,
+#   downloaded by up.sh). It is not published and not on the `kind` network.
+# - spark-mcp joins Docker's `kind` network as `spark-history-real`, so the gateway in the kind
+#   cluster can reach it. Nothing is published to the host.
+# - It has no authentication and cannot receive the caller's identity: it reads Spark History
+#   Server as itself. The NetworkPolicy of §6 does not protect it, so anything on the `kind`
+#   network can call it. Use sample or non-sensitive logs only.
+services:
+  spark-history-server:
+    container_name: spark_history_server
+    image: apache/spark:3.5.5
+    restart: always
+    command:
+      - /opt/java/openjdk/bin/java
+      - -cp
+      - /opt/spark/conf:/opt/spark/jars/*
+      - -Xmx1g
+      - -Dspark.history.fs.logDirectory=/mnt/events
+      - org.apache.spark.deploy.history.HistoryServer
+    volumes:
+      - ./events:/mnt/events:ro
+
+  spark-mcp:
+    container_name: spark_mcp
+    image: ghcr.io/kubeflow/mcp-apache-spark-history-server:1.0.1
+    restart: always   # a target that is down breaks the gateway's initialize for every caller
+    environment:
+      SHS_MCP__ADDRESS: 0.0.0.0
+      SHS_MCP__PORT: "18888"
+      SHS_MCP__TRANSPORT: streamable-http
+      SHS_SERVERS__LOCAL__URL: http://spark-history-server:18080
+      # The server answers 421 "Invalid Host header" for any Host not listed here, and one 421 makes
+      # the gateway's initialize fail for every caller. The gateway sends the host without a port.
+      SHS_MCP__TRANSPORT_SECURITY__ENABLE_DNS_REBINDING_PROTECTION: "true"
+      SHS_MCP__TRANSPORT_SECURITY__ALLOWED_HOSTS: '["spark-history-real","spark-history-real:*"]'
+    depends_on:
+      - spark-history-server
+    networks:
+      default: {}
+      kind:
+        aliases: [spark-history-real]
+
+networks:
+  kind:
+    external: true

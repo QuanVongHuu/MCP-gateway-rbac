@@ -1,0 +1,46 @@
+# Real OpenMetadata 1.13.3 in Docker, behind the gateway as target `openmetadata` (guideline §9).
+# Applied on top of upstream-compose.yml, the unmodified docker-compose-postgres.yml of the
+# 1.13.3 release. Start with ./up.sh; the ingestion (Airflow) service is not started.
+#
+# - The server joins Docker's `kind` network as `openmetadata-real`, so the gateway in the kind
+#   cluster can reach it. The NetworkPolicy of §6 does not protect it: anything on that network can
+#   call it. That is acceptable only because OpenMetadata validates every token itself.
+# - It trusts Keycloak realm `mcp`: tokens are checked against Keycloak's keys, fetched through the
+#   NodePort in keycloak-nodeport.yaml. The user is the token's preferred_username.
+# - Only the UI/API port is published, and only on 127.0.0.1.
+services:
+  postgresql:
+    ports: !reset []
+    volumes: !override
+      - pg-data:/var/lib/postgresql/data
+
+  elasticsearch:
+    ports: !reset []
+    restart: always   # like the server and the database; a target that is down breaks the gateway for everyone
+
+  openmetadata-server:
+    ports: !override
+      - "127.0.0.1:8585:8585"
+    networks: !override
+      app_net: {}
+      kind:
+        aliases: [openmetadata-real]
+    environment:
+      AUTHENTICATION_PROVIDER: custom-oidc
+      CUSTOM_OIDC_AUTHENTICATION_PROVIDER_NAME: Keycloak
+      AUTHENTICATION_AUTHORITY: http://localhost:8002/realms/mcp
+      AUTHENTICATION_CLIENT_ID: openmetadata
+      AUTHENTICATION_CALLBACK_URL: http://localhost:8585/callback
+      # Keycloak's keys for callers' tokens, and OpenMetadata's own keys for its bots
+      AUTHENTICATION_PUBLIC_KEYS: "[http://gatewayapi-control-plane:30802/realms/mcp/protocol/openid-connect/certs,http://localhost:8585/api/v1/system/config/jwks]"
+      AUTHENTICATION_JWT_PRINCIPAL_CLAIMS: "[preferred_username,email,sub]"
+      AUTHORIZER_ADMIN_PRINCIPALS: "[admin.user]"
+      AUTHORIZER_PRINCIPAL_DOMAIN: example.com
+      PIPELINE_SERVICE_CLIENT_ENABLED: "false"
+
+volumes:
+  pg-data:
+
+networks:
+  kind:
+    external: true
