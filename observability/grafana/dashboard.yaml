@@ -14,14 +14,14 @@ data:
           "type": "stat", "title": "Allowed tool calls", "id": 1,
           "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
           "targets": [{"refId": "A", "expr": "sum(count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=200` [$__auto]))", "queryType": "instant"}],
-          "fieldConfig": {"defaults": {"color": {"mode": "fixedColor", "fixedColor": "green"}}, "overrides": []},
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "green"}}, "overrides": []},
           "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
         },
         {
           "type": "stat", "title": "Denied tool calls", "id": 2,
           "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
           "targets": [{"refId": "A", "expr": "sum(count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool` [$__auto]))", "queryType": "instant"}],
-          "fieldConfig": {"defaults": {"color": {"mode": "fixedColor", "fixedColor": "red"}}, "overrides": []},
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}}, "overrides": []},
           "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
         },
         {
