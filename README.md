@@ -9,6 +9,8 @@ Keycloak is the identity provider. **We write no gateway code**: the project is 
 
 > **Status:** the complete AI Agent MVP has been validated on kind: Keycloak service identities, strict JWT authentication, role-based tool discovery/calls, backend identity headers, NetworkPolicy and audit fields. All 10 Agent × Tool test profiles pass. See `evidence/agent-rbac-smoke.txt`. Real backend integration and delegated human identity remain future work.
 
+The optional Grafana audit dashboard is under `observability/grafana/`; it visualizes allowed and denied `tools/call` events by caller, role, target and tool.
+
 ## Architecture
 
 ```mermaid
@@ -106,6 +108,7 @@ servers/           mock MCP backends, one folder per target name
   radar/  spark-history/  openmetadata/  dbt/  airflow/
 observability/
   access-logs/       caller, roles and MCP fields on every log line
+  grafana/           Loki collection and allow/deny dashboard by user, role and tool
 tests/
   expected/          the role x tool allow/deny matrix, as data
   inspector/         scripted MCP Inspector calls per test user
