@@ -80,6 +80,9 @@ step "4. Port-forwards"
 kubectl rollout status deploy/agentgateway-proxy -n agentgateway-system --timeout=300s
 forward 8080 agentgateway-system deployment/agentgateway-proxy 80
 forward 8002 keycloak svc/keycloak 80
+step "4a. Grafana allow/deny dashboard"
+bash observability/grafana/up.sh
+forward 3000 observability svc/grafana 3000
 wait_for "Keycloak on localhost:8002" 120 scripts/get-token.sh admin.user
 
 step "5. OpenMetadata content: test users and a sample table"
@@ -98,6 +101,7 @@ The system is up.
   A token         TOKEN=$(scripts/get-token.sh engineer.user)
   Keycloak        http://localhost:8002            admin / admin
   OpenMetadata    http://localhost:8585
+  Grafana         http://localhost:3000            admin / admin
   Tests           bash scripts/run-tests.sh        or: ./run.sh test
 
 The two port-forwards keep running in the background; a reboot or a Docker restart ends them,
