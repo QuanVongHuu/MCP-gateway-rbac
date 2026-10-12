@@ -56,6 +56,7 @@ When it finishes:
 | A token | `TOKEN=$(scripts/get-token.sh engineer.user)` |
 | Keycloak admin console | `http://localhost:8002`, `admin` / `admin` |
 | OpenMetadata | `http://localhost:8585` |
+| Grafana allow/deny dashboard | `http://localhost:3000`, `admin` / `admin` |
 | Tests | `bash scripts/run-tests.sh` |
 
 **Stop and clean up:**
@@ -162,6 +163,7 @@ servers/           mock MCP backends, one folder per target name, built into one
   radar/  spark-history/  openmetadata/  dbt/  airflow/
 observability/
   access-logs/       caller, roles and MCP fields on every log line
+  grafana/           Loki collection and allow/deny dashboard by user, role and tool
 tests/
   expected/          the role x tool allow/deny matrix, as data
   inspector/         scripted MCP Inspector calls per test user
