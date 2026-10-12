@@ -59,7 +59,7 @@ docker info >/dev/null 2>&1 || die "Docker is not running"
 kubectl get nodes >/dev/null 2>&1 || die "the cluster does not answer (is Docker running?)"
 kubectl get crd agentgatewaypolicies.agentgateway.dev >/dev/null 2>&1 \
   || die "agentgateway is not installed (README Quick start step 2)"
-docker exec gatewayapi-control-plane crictl images 2>/dev/null | grep -q mcp-mocks \
+docker exec gatewayapi-control-plane crictl images 2>/dev/null | grep mcp-mocks >/dev/null \
   || die "the mock image is not in the cluster (README Quick start step 3)"
 echo "ok"
 
