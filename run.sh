@@ -101,12 +101,9 @@ The system is up.
   A token         TOKEN=$(scripts/get-token.sh engineer.user)
   Keycloak        http://localhost:8002            admin / admin
   OpenMetadata    http://localhost:8585
-<<<<<<< HEAD
   Admin UI        kubectl port-forward -n agentgateway-system deployment/agentgateway-proxy 15000
                   then http://localhost:15000/ui/  (read-only, debugging; not started by run.sh)
-=======
   Grafana         http://localhost:3000            admin / admin
->>>>>>> 5e8f74300c9b5df3c7bd0c8c3c5f75bac240dffa
   Tests           bash scripts/run-tests.sh        or: ./run.sh test
 
 The two port-forwards keep running in the background; a reboot or a Docker restart ends them,
