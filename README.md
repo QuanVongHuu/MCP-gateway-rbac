@@ -11,42 +11,16 @@ Keycloak is the identity provider. **We write no gateway code**: the project is 
 
 ## Quick start
 
-You need `kind`, `kubectl`, `helm`, Docker, `curl`, `jq` and Node 22.19+, and about 8 GB of memory for Docker. On Windows, run everything in Git Bash.
-
-Steps 1 to 3 are done once. Step 4 is the only one you repeat.
-
-**1. Create the cluster.** The name must be `gatewayapi`: the OpenMetadata container reaches Keycloak through the node `gatewayapi-control-plane`.
+You need `kind`, `kubectl`, `helm`, Docker with Compose, `curl`, `jq` and Node 22.19+, and about 8 GB of memory for Docker. On Windows, run everything in Git Bash.
 
 ```bash
-kind create cluster --name gatewayapi
+./bootstrap.sh    # once: kind cluster `gatewayapi`, Gateway API CRDs + agentgateway, mock image
+./run.sh          # every time: start everything; ./run.sh test also runs the tests
 ```
 
-**2. Install the Gateway API CRDs and agentgateway** (Helm charts v1.5.0).
+Both scripts are safe to re-run. `./run.sh` is also how you bring the system back after a reboot or a Docker restart. The first run downloads about 4 GB and takes several minutes.
 
-```bash
-kubectl apply --server-side --force-conflicts \
-  -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.0/standard-install.yaml
-
-helm upgrade -i agentgateway-crds oci://cr.agentgateway.dev/charts/agentgateway-crds \
-  --create-namespace --namespace agentgateway-system --version v1.5.0
-helm upgrade -i agentgateway oci://cr.agentgateway.dev/charts/agentgateway \
-  --namespace agentgateway-system --version v1.5.0 --wait
-```
-
-**3. Build the mock image and load it into the cluster.** Repeat this step after changing anything in `servers/`.
-
-```bash
-docker build -t mcp-mocks:dev servers
-kind load docker-image mcp-mocks:dev --name gatewayapi
-```
-
-**4. Start everything.**
-
-```bash
-./run.sh          # or: ./run.sh test   to run the tests at the end
-```
-
-`run.sh` checks steps 1 to 3 and tells you which one is missing. Then it applies the Kubernetes layers, installs the real radar, starts OpenMetadata and Spark History Server MCP in Docker, starts two port-forwards in the background and waits until the gateway answers. The first run downloads about 4 GB and takes several minutes; later runs only check and restart what is missing. It is safe to re-run, and it is also how you bring the system back after a reboot or a Docker restart.
+**[QUICKSTART.md](QUICKSTART.md)** has the full walkthrough: what each script does, the same steps by hand, how to check the result, how to stop and clean up, and troubleshooting.
 
 When it finishes:
 
@@ -59,15 +33,7 @@ When it finishes:
 | Grafana allow/deny dashboard | `http://localhost:3000`, `admin` / `admin` |
 | Tests | `bash scripts/run-tests.sh` |
 
-**Stop and clean up:**
-
-```bash
-docker compose -p openmetadata-real down      # add -v to delete its data too
-docker compose -p spark-history-real down
-kind delete cluster --name gatewayapi
-```
-
-Stopping only the Docker containers breaks the gateway for every caller, because it connects to every target when a session starts. Start them again with `./run.sh`.
+Stop with `docker compose -p openmetadata-real down`, `docker compose -p spark-history-real down` and `kind delete cluster --name gatewayapi`.
 
 ## Architecture
 
@@ -85,11 +51,15 @@ flowchart LR
         end
 
         subgraph mcp["ns: mcp (NetworkPolicy: only the gateway may connect)"]
-            backend["AgentgatewayBackend 'mcp'<br/>multiplexes 3 targets"]
-            radar["radar"]
-            spark["spark-history"]
-            om["openmetadata"]
+            backend["AgentgatewayBackend 'mcp-backend'<br/>multiplexes 5 targets"]
+            radar["radar (real, Helm)"]
+            mocks["dbt, airflow (mocks)"]
         end
+    end
+
+    subgraph docker["Docker, on the kind network"]
+        spark["spark-history (real)"]
+        om["openmetadata (real)"]
     end
 
     client -- "1. get token" --> keycloak
@@ -97,6 +67,7 @@ flowchart LR
     proxy -. "JWKS (verify signature)" .-> keycloak
     proxy --> backend
     backend --> radar
+    backend --> mocks
     backend --> spark
     backend --> om
     proxy -. "token exchange (openmetadata only)" .-> keycloak
@@ -144,13 +115,13 @@ A request passes through a chain of checkpoints, and each one answers a differen
 - **Roles live in Keycloak** as client roles on `mcp-gateway` (`data_admin`, `data_engineer`, `bi_engineer`, `analyst`) and arrive in the token's `roles` claim.
 - **Rules are OR-ed.** Someone with several roles gets the union. No matching rule means no access.
 - **The caller's token never reaches a backend.** Backends get identity either by headers (`x-forwarded-user`, `x-forwarded-groups`) or by an exchanged token scoped to that backend (OpenMetadata).
-- **Backends are reachable only through the gateway**, which is what makes the identity headers trustworthy.
+- **Backends in namespace `mcp` are reachable only through the gateway**, which is what makes the identity headers trustworthy. The Docker containers (OpenMetadata, Spark History Server MCP) are outside that NetworkPolicy; see [deploy/real-servers/README.md](deploy/real-servers/README.md).
 
 ## Folder structure
 
 ```
 deploy/            everything `kubectl apply`-able, one folder per concern
-  cluster/           kind config (Calico if the default CNI doesn't enforce NetworkPolicy)
+  cluster/           notes on the kind cluster and CNI (kind config planned, not written yet)
   agentgateway/      Gateway, AgentgatewayBackend, HTTPRoute
   keycloak/          dev-mode Deployment + realm setup script
   auth/              JWT authentication + identity-header transformation
@@ -159,8 +130,10 @@ deploy/            everything `kubectl apply`-able, one folder per concern
   real-servers/      the real radar (Helm), OpenMetadata and Spark History Server MCP (Docker)
 rbac/
   tool-access.yaml   source of truth: role -> tools
+  policy-overlap-experiment.md   why the policy is one Allow policy on the backend
 servers/           mock MCP backends, one folder per target name, built into one image
   radar/  spark-history/  openmetadata/  dbt/  airflow/
+  k8s/               mocks.yaml (Deployments + Services applied by scripts/up.sh) and older backend drafts
 observability/
   access-logs/       caller, roles and MCP fields on every log line
   grafana/           Loki collection and allow/deny dashboard by user, role and tool
@@ -168,18 +141,22 @@ tests/
   expected/          the role x tool allow/deny matrix, as data
   inspector/         scripted MCP Inspector calls per test user
   curl/              hand-built edge cases (forged headers, batches)
+  gateway_smoke.py   Python MCP client smoke test (calls a few tools through the gateway)
 scripts/           get a token, apply the layers in order, run all tests
+ops/               down.ps1: delete the kind cluster from PowerShell
+bootstrap.sh       one-time setup: cluster, CRDs + agentgateway, mock image (Quick start)
 run.sh             start the whole system with one command (Quick start)
-docs/              architecture and implementation plan
-local-docs/        deployment guideline (commands per step) and personal notes
-evidence/          screenshots/logs for the report
+QUICKSTART.md      step-by-step setup, checks, cleanup and troubleshooting
+docs/              design notes and the observability review
+evidence/          logs and outputs for the report
+local-docs/        deployment guideline and personal notes (git-ignored, not in the repo)
 ```
 
 Each folder matches one checkpoint or build step, so a failing test points to one folder. Policy (`rbac/`) is kept apart from infrastructure (`deploy/`) because it changes often and needs its own review trail.
 
 ## How to leverage it
 
-`./run.sh` builds all of this in one go (Quick start). To build it by hand and understand each layer, follow the build order in [local-docs/mcp-gateway-guideline.md](local-docs/mcp-gateway-guideline.md) and verify each layer before adding the next; `scripts/up.sh` is the same order as code:
+`./run.sh` builds all of this in one go (Quick start). To build it by hand and understand each layer, apply the layers in the order below and verify each one before adding the next. [scripts/up.sh](scripts/up.sh) is the same order as code. The § numbers refer to the deployment guideline in `local-docs/mcp-gateway-guideline.md`, which is git-ignored and only exists on the authors' machines:
 
 1. **Install** the Gateway API CRDs, agentgateway and the `Gateway` (guideline §1). Check: the proxy is running and port-forward to `8080` works.
 2. **Connect backends** (§2). Check: with no auth, `tools/list` at `http://localhost:8080/mcp` shows every tool as `{target}_{tool}`.
@@ -227,9 +204,14 @@ The admin UI at `http://localhost:15000/ui/` is read-only and for debugging only
 
 ## Requirements
 
-`kind`, `kubectl`, `helm`, Docker with Compose, Node 22.19+ (MCP Inspector), `curl`, `jq`. Keycloak ≥ 26.2 (needed for standard token exchange).
+`kind`, `kubectl`, `helm`, Docker with Compose (about 8 GB of memory), Node 22.19+ (MCP Inspector), `curl`, `jq`. On Windows, Git Bash. Keycloak ≥ 26.2 (needed for standard token exchange); `deploy/keycloak/` already deploys it.
 
 ## Docs
 
-- [Deployment guideline](local-docs/mcp-gateway-guideline.md): commands and config for each step
-- [Architecture](docs/02-architecture.md) and [implementation plan](docs/03-implementation-plan.md): design reasoning, backends, tests, tasks, risks
+- [QUICKSTART.md](QUICKSTART.md): setup, checks, cleanup and troubleshooting
+- [deploy/real-servers/README.md](deploy/real-servers/README.md): the real radar, OpenMetadata and Spark History Server MCP, and their limits
+- [rbac/policy-overlap-experiment.md](rbac/policy-overlap-experiment.md): how overlapping policies combine
+- [docs/agentgateway-observability-review.md](docs/agentgateway-observability-review.md): access logs, metrics, traces, admin UI and tool denials on agentgateway v1.5.0
+- [observability/grafana/README.md](observability/grafana/README.md): the allow/deny dashboard
+- Each folder has a `README.md` saying what it holds, which checkpoint it belongs to and how to check it
+- Planned, not written yet: `docs/02-architecture.md` and `docs/03-implementation-plan.md` (see [docs/README.md](docs/README.md))

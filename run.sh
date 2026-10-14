@@ -4,7 +4,7 @@
 #   ./run.sh         start everything and wait until the gateway answers
 #   ./run.sh test    the same, then run scripts/run-tests.sh
 #
-# Do README "Quick start" steps 1 to 3 once before the first run: the kind cluster `gatewayapi`,
+# Run ./bootstrap.sh once before the first run (QUICKSTART.md): the kind cluster `gatewayapi`,
 # the Gateway API CRDs and agentgateway Helm charts, and the mock image.
 #
 # What it starts: the Kubernetes layers (scripts/up.sh), the real radar (Helm), the real
@@ -55,12 +55,12 @@ done
 docker info >/dev/null 2>&1 || die "Docker is not running"
 # the cluster name is fixed: the OpenMetadata container reaches Keycloak at gatewayapi-control-plane
 [ "$(kubectl config current-context)" = kind-gatewayapi ] \
-  || die "kubectl context is not kind-gatewayapi (README Quick start step 1, or: kubectl config use-context kind-gatewayapi)"
+  || die "kubectl context is not kind-gatewayapi (run ./bootstrap.sh, or: kubectl config use-context kind-gatewayapi)"
 kubectl get nodes >/dev/null 2>&1 || die "the cluster does not answer (is Docker running?)"
 kubectl get crd agentgatewaypolicies.agentgateway.dev >/dev/null 2>&1 \
-  || die "agentgateway is not installed (README Quick start step 2)"
+  || die "agentgateway is not installed (run ./bootstrap.sh)"
 docker exec gatewayapi-control-plane crictl images 2>/dev/null | grep mcp-mocks >/dev/null \
-  || die "the mock image is not in the cluster (README Quick start step 3)"
+  || die "the mock image is not in the cluster (run ./bootstrap.sh)"
 echo "ok"
 
 step "1. Kubernetes layers: gateway, mocks, Keycloak, policies"
