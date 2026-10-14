@@ -59,7 +59,7 @@ docker info >/dev/null 2>&1 || die "Docker is not running"
 kubectl get nodes >/dev/null 2>&1 || die "the cluster does not answer (is Docker running?)"
 kubectl get crd agentgatewaypolicies.agentgateway.dev >/dev/null 2>&1 \
   || die "agentgateway is not installed (README Quick start step 2)"
-docker exec gatewayapi-control-plane crictl images 2>/dev/null | grep -q mcp-mocks \
+docker exec gatewayapi-control-plane crictl images 2>/dev/null | grep mcp-mocks >/dev/null \
   || die "the mock image is not in the cluster (README Quick start step 3)"
 echo "ok"
 
@@ -80,6 +80,9 @@ step "4. Port-forwards"
 kubectl rollout status deploy/agentgateway-proxy -n agentgateway-system --timeout=300s
 forward 8080 agentgateway-system deployment/agentgateway-proxy 80
 forward 8002 keycloak svc/keycloak 80
+step "4a. Grafana allow/deny dashboard"
+bash observability/grafana/up.sh
+forward 3000 observability svc/grafana 3000
 wait_for "Keycloak on localhost:8002" 120 scripts/get-token.sh admin.user
 
 step "5. OpenMetadata content: test users and a sample table"
@@ -98,8 +101,12 @@ The system is up.
   A token         TOKEN=$(scripts/get-token.sh engineer.user)
   Keycloak        http://localhost:8002            admin / admin
   OpenMetadata    http://localhost:8585
+<<<<<<< HEAD
   Admin UI        kubectl port-forward -n agentgateway-system deployment/agentgateway-proxy 15000
                   then http://localhost:15000/ui/  (read-only, debugging; not started by run.sh)
+=======
+  Grafana         http://localhost:3000            admin / admin
+>>>>>>> 5e8f74300c9b5df3c7bd0c8c3c5f75bac240dffa
   Tests           bash scripts/run-tests.sh        or: ./run.sh test
 
 The two port-forwards keep running in the background; a reboot or a Docker restart ends them,
