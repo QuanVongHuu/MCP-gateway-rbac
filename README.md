@@ -7,7 +7,7 @@ Deploys [agentgateway](https://agentgateway.dev) (Helm charts v1.5.0) on a local
 
 Keycloak is the identity provider. **We write no gateway code**: the project is configuration (YAML), mock backends and tests.
 
-> **Status:** the configs in `local-docs/mcp-gateway-guideline.md` are a starting point checked against vendor docs, **not yet run**. Fields marked *check* there must be confirmed against the installed versions.
+> **Status:** the complete AI Agent MVP has been validated on kind: Keycloak service identities, strict JWT authentication, role-based tool discovery/calls, backend identity headers, NetworkPolicy and audit fields. All 10 Agent × Tool test profiles pass. See `evidence/agent-rbac-smoke.txt`. Real backend integration and delegated human identity remain future work.
 
 ## Architecture
 
@@ -25,10 +25,12 @@ flowchart LR
         end
 
         subgraph mcp["ns: mcp (NetworkPolicy: only the gateway may connect)"]
-            backend["AgentgatewayBackend 'mcp'<br/>multiplexes 3 targets"]
+            backend["AgentgatewayBackend 'mcp-backend'<br/>multiplexes 5 targets"]
             radar["radar"]
             spark["spark-history"]
             om["openmetadata"]
+            dbt["dbt"]
+            airflow["airflow"]
         end
     end
 
@@ -39,6 +41,8 @@ flowchart LR
     backend --> radar
     backend --> spark
     backend --> om
+    backend --> dbt
+    backend --> airflow
     proxy -. "token exchange (openmetadata only)" .-> keycloak
 ```
 
@@ -81,7 +85,7 @@ A request passes through a chain of checkpoints, and each one answers a differen
 ### Key behaviours
 
 - **One endpoint.** Clients only talk to `/mcp` on the gateway. Tools from all backends appear as `{target}_{tool}`, e.g. `radar_list_namespaces`, `openmetadata_search_metadata`.
-- **Roles live in Keycloak** as client roles on `mcp-gateway` (`data_admin`, `data_engineer`, `bi_engineer`, `analyst`) and arrive in the token's `roles` claim.
+- **AI Agent capabilities live in Keycloak** as client roles on `mcp-gateway` (for example `kube_viewer`, `metadata_editor`, `airflow_operator`) and arrive in the token's `roles` claim.
 - **Rules are OR-ed.** Someone with several roles gets the union. No matching rule means no access.
 - **The caller's token never reaches a backend.** Backends get identity either by headers (`x-forwarded-user`, `x-forwarded-groups`) or by an exchanged token scoped to that backend (OpenMetadata).
 - **Backends are reachable only through the gateway**, which is what makes the identity headers trustworthy.
@@ -99,7 +103,7 @@ deploy/            everything `kubectl apply`-able, one folder per concern
 rbac/
   tool-access.yaml   source of truth: role -> tools
 servers/           mock MCP backends, one folder per target name
-  radar/  spark-history/  openmetadata/
+  radar/  spark-history/  openmetadata/  dbt/  airflow/
 observability/
   access-logs/       caller, roles and MCP fields on every log line
 tests/
@@ -120,8 +124,8 @@ Follow the build order in [local-docs/mcp-gateway-guideline.md](local-docs/mcp-g
 
 1. **Install** the Gateway API CRDs, agentgateway and the `Gateway` (guideline §1). Check: the proxy is running and port-forward to `8080` works.
 2. **Connect backends** (§2). Check: with no auth, `tools/list` at `http://localhost:8080/mcp` shows every tool as `{target}_{tool}`.
-3. **Keycloak** (§3). Check: a token for `multi.user` has `roles: ["data_engineer", "bi_engineer"]`.
-4. **Auth and tool access** (§4). Check: no token is rejected, and each test user sees only their tools.
+3. **Keycloak**. Check: every AI Agent service account token has `aud=mcp-gateway`, its own `azp`, and only its expected capability roles.
+4. **Auth and tool access**. Check: no token is rejected, and each test agent sees only its expected tools.
 5. **Caller identity** (§5). Check: the radar mock logs the token's user, not a forged header.
 6. **Network** (§6). Check: a pod outside the gateway cannot reach a backend.
 7. **Access logs** (§7), then **test with MCP Inspector** (§8).
@@ -138,15 +142,9 @@ Follow the build order in [local-docs/mcp-gateway-guideline.md](local-docs/mcp-g
 
 Keep the target name identical across the backend target, the tool prefix, the RBAC rule, `servers/<name>/` and the tests.
 
-### Test users
+### AI Agent identities
 
-| User | Roles |
-|---|---|
-| `analyst.user` | `analyst` (direct) |
-| `engineer.user` | `data_engineer` (via group `data-team`) |
-| `multi.user` | `data_engineer` + `bi_engineer` (groups `data-team`, `bi-team`) |
-| `admin.user` | `data_admin` (direct) |
-| `nobody.user` | none |
+The initial service accounts and their role-to-tool matrix are defined in [AI Agent Tool Access](docs/ai-agent-tool-access.md) and machine-readable form in `tests/expected/agent-tool-access.json`. Each agent uses OAuth client credentials and has a distinct confidential Keycloak client.
 
 ### Trying it
 
@@ -161,9 +159,10 @@ The admin UI at `http://localhost:15000/ui/` is read-only and for debugging only
 
 ## Requirements
 
-`kind`, `kubectl`, `helm`, Node 22.19+ (MCP Inspector), `curl`, `jq`. Keycloak ≥ 26.2 (needed for standard token exchange).
+`kind`, `kubectl`, `helm`, Python 3.13 with `mcp==1.30.0`, Node 22.19+ (MCP Inspector), `curl`, `jq`. Keycloak ≥ 26.2.
 
 ## Docs
 
-- [Deployment guideline](local-docs/mcp-gateway-guideline.md): commands and config for each step
-- [Architecture](docs/02-architecture.md) and [implementation plan](docs/03-implementation-plan.md): design reasoning, backends, tests, tasks, risks
+- [AI Agent Tool Access](docs/ai-agent-tool-access.md): identities, capability roles and the 21-tool authorization matrix
+- [Implementation plan](docs/idea.md): phased rollout and acceptance criteria
+- [Legacy deployment guideline](local-docs/mcp-gateway-guideline.md): older design notes; validate all fields marked *check*

@@ -1,0 +1,42 @@
+Verified on kind-mcp: 2026-10-29
+
+Versions:
+- Kubernetes v1.37.0
+- agentgateway v1.5.0
+- Keycloak 26.2.5
+- Calico 3.33.0
+- mcp Python SDK 1.30.0
+
+Policy status:
+- ai-agent-jwt: Accepted=True, Attached=True
+- ai-agent-tool-access: Accepted=True, Attached=True
+- ai-agent-access-logs: Accepted=True, Attached=True
+
+Agent x Tool integration result:
+cluster-observer-agent: roles=['kube_viewer'] tools=3 PASS
+incident-response-agent: roles=['kube_operator', 'spark_viewer'] tools=7 PASS
+spark-diagnostic-agent: roles=['spark_viewer'] tools=3 PASS
+metadata-discovery-agent: roles=['metadata_viewer'] tools=3 PASS
+metadata-steward-agent: roles=['metadata_editor'] tools=4 PASS
+dbt-quality-agent: roles=['dbt_operator'] tools=5 PASS
+airflow-monitor-agent: roles=['airflow_viewer'] tools=3 PASS
+airflow-operator-agent: roles=['airflow_operator'] tools=5 PASS
+platform-admin-agent: roles=['platform_admin'] tools=21 PASS
+no-access-agent: roles=[] tools=0 PASS
+agent_rbac_smoke=PASS
+
+Each agent check verifies:
+- client_credentials token audience, authorized party and exact roles;
+- tools/list equals the expected catalog;
+- one allowed tool call succeeds;
+- the backend sees x-agent-id and x-forwarded-user from the verified JWT;
+- one denied tool call is rejected.
+
+NetworkPolicy result:
+- pod in namespace default -> radar.mcp:80: blocked (connection timeout)
+- pod in namespace agentgateway-system -> radar.mcp:80: connected (HTTP 406 from MCP endpoint)
+
+Audit result:
+- gateway logs contain agent_id, agent_roles, mcp_method, mcp_target and mcp_tool;
+- allowed calls log HTTP 200;
+- denied tool calls log HTTP 400 and "Unknown tool", without revealing whether a hidden tool exists.

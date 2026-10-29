@@ -1,0 +1,23 @@
+Environment setup verified: 2026-10-29
+
+Host:
+- Ubuntu 26.04.1 LTS on WSL2
+- Docker Desktop client/server 29.6.2
+
+CLI:
+- kubectl v1.37.0 (Kustomize v5.8.1)
+- kind v0.33.0
+- Helm v3.22.1
+
+Cluster:
+- context: kind-mcp
+- cluster name: mcp
+- Kubernetes: v1.37.0
+- node: mcp-control-plane Ready
+- CNI: Calico v3.33.0
+- Calico, CoreDNS and local-path storage workloads Ready
+
+Installation notes:
+- CLI release artifacts were verified against their published SHA256 checksums.
+- Docker Desktop uses its WSL2 Linux engine.
+- kind was run with a temporary empty DOCKER_CONFIG for the public node-image pull because the Windows credential helper was not available to the headless WSL session. The user's Docker config was not modified.

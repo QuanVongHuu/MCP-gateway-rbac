@@ -2,8 +2,8 @@
 
 **What:** the local Kubernetes cluster the whole project runs on (`kind`), plus the CNI choice.
 
-**Contains (planned):**
-- `kind-config.yaml`: cluster definition. Use Calico if kind's default CNI does not enforce NetworkPolicy.
+**Contains:**
+- `kind-config.yaml`: single-node cluster `mcp` with the default CNI disabled and pod CIDR `192.168.0.0/16`. Install Calico before deploying workloads so NetworkPolicy is enforced.
 
 **README mapping:** *Folder structure* → `deploy/cluster/`. Build step 1 (*Install*), guideline §1 and §6.
 

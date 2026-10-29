@@ -1,0 +1,35 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: ai-agent-jwt
+  namespace: agentgateway-system
+spec:
+  targetRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: agentgateway-proxy
+  traffic:
+    jwtAuthentication:
+      mode: Strict
+      providers:
+      - issuer: http://localhost:8002/realms/mcp
+        audiences: [mcp-gateway]
+        jwks:
+          remote:
+            jwksPath: /realms/mcp/protocol/openid-connect/certs
+            cacheDuration: 5m
+            backendRef:
+              group: ""
+              kind: Service
+              name: keycloak
+              namespace: keycloak
+              port: 8080
+    transformation:
+      request:
+        set:
+        - name: x-agent-id
+          value: default(jwt.azp, jwt.sub)
+        - name: x-forwarded-user
+          value: default(jwt.azp, jwt.sub)
+        - name: x-forwarded-groups
+          value: default(jwt.kube_group, '')

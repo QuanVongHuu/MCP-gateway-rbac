@@ -2,8 +2,8 @@
 
 **What:** the network boundary that makes the gateway the only way into the backends.
 
-**Contains (planned):**
-- `backends.yaml`: a `NetworkPolicy` in namespace `mcp` allowing ingress only from namespace `agentgateway-system`.
+**Contains:**
+- `backends.yaml`: a `NetworkPolicy` selecting the mock MCP pods and allowing port 8000 ingress only from namespace `agentgateway-system`.
 
 **README mapping:** *Network* checkpoint. Build step 6, guideline §6.
 
@@ -11,4 +11,4 @@
 
 **Depends on:** a CNI that enforces NetworkPolicy (`deploy/cluster/`).
 
-**Check:** a pod outside the gateway cannot connect to a backend Service.
+**Check:** a pod outside the gateway cannot connect to a backend Service. The manifest existing is not proof that the CNI enforces it.

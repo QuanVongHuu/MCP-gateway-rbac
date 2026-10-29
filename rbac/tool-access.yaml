@@ -1,0 +1,33 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: ai-agent-tool-access
+  namespace: mcp
+spec:
+  targetRefs:
+  - group: agentgateway.dev
+    kind: AgentgatewayBackend
+    name: mcp-backend
+  backend:
+    mcp:
+      authorization:
+        action: Allow
+        policy:
+          matchExpressions:
+          # Kubernetes/Radar read access.
+          - 'has(jwt.roles) && ("kube_viewer" in jwt.roles || "kube_operator" in jwt.roles) && mcp.tool.target == "radar" && mcp.tool.name in ["list_namespaces", "list_resources", "get_pod_logs"]'
+          # Kubernetes/Radar write-shaped access.
+          - 'has(jwt.roles) && "kube_operator" in jwt.roles && mcp.tool.target == "radar" && mcp.tool.name == "manage_workload"'
+          # Spark History is read-only in the current catalog.
+          - 'has(jwt.roles) && "spark_viewer" in jwt.roles && mcp.tool.target == "spark-history" && mcp.tool.name in ["list_applications", "get_stage", "get_job_bottlenecks"]'
+          # OpenMetadata read and edit capabilities.
+          - 'has(jwt.roles) && ("metadata_viewer" in jwt.roles || "metadata_editor" in jwt.roles) && mcp.tool.target == "openmetadata" && mcp.tool.name in ["search_metadata", "get_entity_details", "get_entity_lineage"]'
+          - 'has(jwt.roles) && "metadata_editor" in jwt.roles && mcp.tool.target == "openmetadata" && mcp.tool.name == "patch_entity"'
+          # dbt read and execute capabilities.
+          - 'has(jwt.roles) && ("dbt_viewer" in jwt.roles || "dbt_operator" in jwt.roles) && mcp.tool.target == "dbt" && mcp.tool.name in ["list_metrics", "query_metrics", "get_model_health", "get_lineage"]'
+          - 'has(jwt.roles) && "dbt_operator" in jwt.roles && mcp.tool.target == "dbt" && mcp.tool.name == "test"'
+          # Airflow read and operator capabilities.
+          - 'has(jwt.roles) && ("airflow_viewer" in jwt.roles || "airflow_operator" in jwt.roles) && mcp.tool.target == "airflow" && mcp.tool.name in ["list_dags", "get_dag_run", "get_task_logs"]'
+          - 'has(jwt.roles) && "airflow_operator" in jwt.roles && mcp.tool.target == "airflow" && mcp.tool.name in ["trigger_dag", "pause_dag"]'
+          # Break-glass access; do not assign to routine agents.
+          - 'has(jwt.roles) && "platform_admin" in jwt.roles'

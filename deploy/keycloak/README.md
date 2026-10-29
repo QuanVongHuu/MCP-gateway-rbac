@@ -2,17 +2,13 @@
 
 **What:** Keycloak, the identity provider. It issues the tokens whose `roles` claim drives all tool access.
 
-**Contains (planned):**
-- Dev-mode Deployment + Service in namespace `keycloak` (Keycloak ≥ 26.2, `KC_HOSTNAME=http://localhost:8002`).
-- Realm setup script (`kcadm.sh` or admin REST API) creating:
-  - realm `mcp`
-  - clients `mcp-gateway` (confidential, owns roles `data_admin`, `data_engineer`, `bi_engineer`, `analyst`), `openmetadata`, `mcp-cli` (public, test only)
-  - mappers: audience → `mcp-gateway`, client roles → `roles` claim
-  - groups `data-team`, `bi-team`
-  - the five test users
+**Contains:**
+- `namespace.yaml`: namespace `keycloak`.
+- `realm-config.yaml`: realm `mcp`, protected resource `mcp-gateway`, capability roles and one confidential service-account client per AI Agent.
+- `keycloak.yaml`: Keycloak 26.2.5 dev Deployment and Service. The realm is imported at startup and secrets are resolved from environment variables backed by Kubernetes Secrets.
 
 **README mapping:** *Authentication* checkpoint; *Test users* table. Build step 3, guideline §3.
 
-**Check:** a token for `multi.user` decodes to `roles: ["data_engineer", "bi_engineer"]`.
+**Check:** each client-credentials token has `aud=mcp-gateway`, `azp=<agent-client-id>` and exactly the roles in `tests/expected/agent-tool-access.json`.
 
-**Secrets:** do not commit the `mcp-gateway` client secret.
+**Secrets:** run `scripts/bootstrap-agent-secrets.sh`; never commit or print the generated values. Realm import is skipped when the realm already exists, so secret rotation requires updating both Keycloak and the Kubernetes Secret deliberately.

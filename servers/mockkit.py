@@ -37,6 +37,7 @@ def seen(ctx: Context, target: str, tool: str, args: dict) -> dict:
         "target": target,
         "tool": tool,
         "args": args,
+        "x_agent_id": headers.get("x-agent-id"),
         "x_forwarded_user": headers.get("x-forwarded-user"),
         "x_forwarded_groups": headers.get("x-forwarded-groups"),
         "authorization_present": "authorization" in headers,

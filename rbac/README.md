@@ -2,8 +2,8 @@
 
 **What:** the policy: which role may call which MCP tool. It is the source of truth for authorization, kept apart from infrastructure because it changes often and needs its own review.
 
-**Contains (planned):**
-- `tool-access.yaml`: an `AgentgatewayPolicy` on the MCP backend with `Allow` match expressions.
+**Contains:**
+- `tool-access.yaml`: deny-by-default `AgentgatewayPolicy` with `Allow` expressions for the ten AI Agent capability roles.
 
 **Rules of the format:**
 - every rule checks a role, guarded by `has(jwt.roles)`
@@ -13,4 +13,4 @@
 
 **README mapping:** *Authorization* checkpoint; *Common changes* ("give a role access to more tools"). Build step 4, guideline §4.
 
-**When you change it:** update `tests/expected/` in the same pull request. The mapping in the guideline is an example, not a decision.
+**When you change it:** update `tests/expected/agent-tool-access.json` in the same pull request and run `node tests/static_contract_test.mjs` plus the live RBAC smoke test.

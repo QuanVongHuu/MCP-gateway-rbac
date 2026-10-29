@@ -6,6 +6,10 @@
 - `02-architecture.md`: design and reasoning (checkpoints, decisions A1–A7).
 - `03-implementation-plan.md`: backends, environment, folder layout, build order, tests, task table, risks.
 
+**Current design documents:**
+- `ai-agent-tool-access.md`: AI Agent identity, capability roles and the role-to-tool matrix.
+- `idea.md`: phased implementation plan for AI Agent authentication, tool RBAC, tests and backend enforcement.
+
 **README mapping:** the *Docs* section links to both files. They don't exist yet, so those links are currently broken.
 
 **Split:** `docs/` explains why; `local-docs/mcp-gateway-guideline.md` gives the commands.

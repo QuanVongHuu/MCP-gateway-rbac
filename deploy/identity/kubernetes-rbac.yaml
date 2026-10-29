@@ -1,0 +1,73 @@
+# Radar proxy-mode maps x-forwarded-groups to Kubernetes groups. Keep write
+# bindings namespace-scoped; add another RoleBinding explicitly for each managed namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mcp-agent-namespace-reader
+rules:
+- apiGroups: [""]
+  resources: [namespaces]
+  verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-agent-namespace-readers
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mcp-agent-namespace-reader
+subjects:
+- {kind: Group, name: kube_viewer, apiGroup: rbac.authorization.k8s.io}
+- {kind: Group, name: kube_operator, apiGroup: rbac.authorization.k8s.io}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mcp-agent-workload-viewer
+  namespace: mcp
+rules:
+- apiGroups: [""]
+  resources: [pods]
+  verbs: [get, list, watch]
+- apiGroups: [""]
+  resources: [pods/log]
+  verbs: [get]
+- apiGroups: [apps]
+  resources: [deployments, statefulsets, daemonsets, replicasets]
+  verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mcp-agent-workload-viewers
+  namespace: mcp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: mcp-agent-workload-viewer
+subjects:
+- {kind: Group, name: kube_viewer, apiGroup: rbac.authorization.k8s.io}
+- {kind: Group, name: kube_operator, apiGroup: rbac.authorization.k8s.io}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mcp-agent-workload-operator
+  namespace: mcp
+rules:
+- apiGroups: [apps]
+  resources: [deployments, statefulsets, daemonsets]
+  verbs: [get, list, watch, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mcp-agent-workload-operators
+  namespace: mcp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: mcp-agent-workload-operator
+subjects:
+- {kind: Group, name: kube_operator, apiGroup: rbac.authorization.k8s.io}

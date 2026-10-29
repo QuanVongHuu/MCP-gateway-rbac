@@ -1,0 +1,225 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-realm
+  namespace: keycloak
+data:
+  mcp-realm.json: |
+    {
+      "realm": "mcp",
+      "enabled": true,
+      "displayName": "MCP AI Agents",
+      "accessTokenLifespan": 300,
+      "ssoSessionIdleTimeout": 1800,
+      "registrationAllowed": false,
+      "resetPasswordAllowed": false,
+      "roles": {
+        "client": {
+          "mcp-gateway": [
+            {"name": "kube_viewer"},
+            {"name": "kube_operator"},
+            {"name": "spark_viewer"},
+            {"name": "metadata_viewer"},
+            {"name": "metadata_editor"},
+            {"name": "dbt_viewer"},
+            {"name": "dbt_operator"},
+            {"name": "airflow_viewer"},
+            {"name": "airflow_operator"},
+            {"name": "platform_admin"}
+          ]
+        }
+      },
+      "clients": [
+        {
+          "clientId": "mcp-gateway",
+          "name": "MCP Gateway protected resource",
+          "protocol": "openid-connect",
+          "bearerOnly": true,
+          "enabled": true
+        },
+        {
+          "clientId": "cluster-observer-agent",
+          "name": "Cluster Observer Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${CLUSTER_OBSERVER_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}},
+            {"name":"kubernetes-group","protocol":"openid-connect","protocolMapper":"oidc-hardcoded-claim-mapper","consentRequired":false,"config":{"claim.name":"kube_group","claim.value":"kube_viewer","jsonType.label":"String","access.token.claim":"true","id.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "incident-response-agent",
+          "name": "Incident Response Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${INCIDENT_RESPONSE_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}},
+            {"name":"kubernetes-group","protocol":"openid-connect","protocolMapper":"oidc-hardcoded-claim-mapper","consentRequired":false,"config":{"claim.name":"kube_group","claim.value":"kube_operator","jsonType.label":"String","access.token.claim":"true","id.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "spark-diagnostic-agent",
+          "name": "Spark Diagnostic Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${SPARK_DIAGNOSTIC_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "metadata-discovery-agent",
+          "name": "Metadata Discovery Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${METADATA_DISCOVERY_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "metadata-steward-agent",
+          "name": "Metadata Steward Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${METADATA_STEWARD_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "dbt-quality-agent",
+          "name": "dbt Quality Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${DBT_QUALITY_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "airflow-monitor-agent",
+          "name": "Airflow Monitor Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${AIRFLOW_MONITOR_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "airflow-operator-agent",
+          "name": "Airflow Operator Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${AIRFLOW_OPERATOR_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "platform-admin-agent",
+          "name": "Platform Admin Agent (break-glass)",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${PLATFORM_ADMIN_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": true,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}}
+          ]
+        },
+        {
+          "clientId": "no-access-agent",
+          "name": "Negative Test Agent",
+          "protocol": "openid-connect",
+          "enabled": true,
+          "publicClient": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "${NO_ACCESS_AGENT_SECRET}",
+          "serviceAccountsEnabled": true,
+          "standardFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "fullScopeAllowed": false,
+          "protocolMappers": [
+            {"name":"mcp-gateway-audience","protocol":"openid-connect","protocolMapper":"oidc-audience-mapper","consentRequired":false,"config":{"included.client.audience":"mcp-gateway","id.token.claim":"false","access.token.claim":"true"}},
+            {"name":"mcp-gateway-roles","protocol":"openid-connect","protocolMapper":"oidc-usermodel-client-role-mapper","consentRequired":false,"config":{"usermodel.clientRoleMapping.clientId":"mcp-gateway","claim.name":"roles","jsonType.label":"String","multivalued":"true","access.token.claim":"true","id.token.claim":"false","userinfo.token.claim":"false"}}
+          ]
+        }
+      ],
+      "users": [
+        {"username":"service-account-cluster-observer-agent","enabled":true,"serviceAccountClientId":"cluster-observer-agent","clientRoles":{"mcp-gateway":["kube_viewer"]}},
+        {"username":"service-account-incident-response-agent","enabled":true,"serviceAccountClientId":"incident-response-agent","clientRoles":{"mcp-gateway":["kube_operator","spark_viewer"]}},
+        {"username":"service-account-spark-diagnostic-agent","enabled":true,"serviceAccountClientId":"spark-diagnostic-agent","clientRoles":{"mcp-gateway":["spark_viewer"]}},
+        {"username":"service-account-metadata-discovery-agent","enabled":true,"serviceAccountClientId":"metadata-discovery-agent","clientRoles":{"mcp-gateway":["metadata_viewer"]}},
+        {"username":"service-account-metadata-steward-agent","enabled":true,"serviceAccountClientId":"metadata-steward-agent","clientRoles":{"mcp-gateway":["metadata_editor"]}},
+        {"username":"service-account-dbt-quality-agent","enabled":true,"serviceAccountClientId":"dbt-quality-agent","clientRoles":{"mcp-gateway":["dbt_operator"]}},
+        {"username":"service-account-airflow-monitor-agent","enabled":true,"serviceAccountClientId":"airflow-monitor-agent","clientRoles":{"mcp-gateway":["airflow_viewer"]}},
+        {"username":"service-account-airflow-operator-agent","enabled":true,"serviceAccountClientId":"airflow-operator-agent","clientRoles":{"mcp-gateway":["airflow_operator"]}},
+        {"username":"service-account-platform-admin-agent","enabled":true,"serviceAccountClientId":"platform-admin-agent","clientRoles":{"mcp-gateway":["platform_admin"]}},
+        {"username":"service-account-no-access-agent","enabled":true,"serviceAccountClientId":"no-access-agent"}
+      ]
+    }

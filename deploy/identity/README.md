@@ -2,8 +2,11 @@
 
 **What:** per-backend identity for backends that need a real token instead of headers. Today that is OpenMetadata.
 
-**Contains (planned):**
-- `openmetadata.yaml`: an `AgentgatewayPolicy` doing OAuth token exchange at Keycloak, so the backend receives a token whose audience is only `openmetadata`.
+**Contains:**
+- `kubernetes-rbac.yaml`: maps verified Radar proxy groups to cluster namespace-read and namespace-scoped workload read/operator permissions. Write bindings are intentionally not cluster-wide.
+
+**Still planned:**
+- `openmetadata.yaml`: OAuth token exchange at Keycloak so the real backend receives a token whose audience is only `openmetadata`.
 
 **README mapping:** the token-exchange half of the *Identity* checkpoint. Build step 5, guideline §5.
 
