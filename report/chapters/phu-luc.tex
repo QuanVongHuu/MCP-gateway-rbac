@@ -1,0 +1,177 @@
+\heading{PHỤ LỤC}
+
+Các phụ lục trích ý chính của mã nguồn và cấu hình; phần lược bỏ được đánh dấu bằng dấu ba chấm. Toàn bộ mã nguồn nằm trong kho mã ở Phụ lục A.
+
+\subsection*{Phụ lục A. Mã nguồn và dữ liệu}
+\addcontentsline{toc}{subsection}{Phụ lục A. Mã nguồn và dữ liệu}
+\todo{Public link repository.}
+
+\subsection*{Phụ lục B. Cấu hình gateway}
+\addcontentsline{toc}{subsection}{Phụ lục B. Cấu hình gateway}
+\textit{B.1. Backend hợp nhất năm target} (\texttt{deploy/agentgateway/AgentgatewayBackend.yaml})
+\begin{lstlisting}
+kind: AgentgatewayBackend
+spec:
+  mcp:
+    prefixMode: Always          # tool hiển thị là {target}_{tool}
+    targets:
+    - name: dbt
+      static: {host: dbt.mcp.svc.cluster.local, port: 80, path: /mcp,
+               protocol: StreamableHTTP}
+    ...
+\end{lstlisting}
+\textit{B.2. Xác thực JWT và chuyển tiếp định danh} (\texttt{deploy/auth/jwt.yaml})
+\begin{lstlisting}
+traffic:
+  jwtAuthentication:
+    mode: Strict
+    preserveToken: true
+    providers:
+    - issuer: http://localhost:8002/realms/mcp
+      audiences: [mcp-gateway]
+      jwks: {remote: {jwksPath: /realms/mcp/protocol/openid-connect/certs,
+                      cacheDuration: "5m", ...}}
+  transformation:
+    request:
+      set:
+      - {name: x-forwarded-user,   value: "jwt.preferred_username"}
+      - {name: x-agent-id,         value: "has(jwt.azp) ? jwt.azp : ''"}
+      - {name: x-forwarded-groups, value: "has(jwt.roles) ? jwt.roles.join(',') : ''"}
+      - {name: x-caller-token,     value: 'request.headers["authorization"]'}
+      remove: [authorization]
+---
+# chính sách thứ hai, gắn vào backend: xóa token trước khi rời gateway
+backend: {transformation: {request: {remove: [x-caller-token]}}}
+\end{lstlisting}
+\textit{B.3. Phân quyền theo công cụ} (\texttt{rbac/tool-access.yaml})
+\begin{lstlisting}
+backend:
+  mcp:
+    authorization:
+      action: Allow
+      policy:
+        matchExpressions:      # các biểu thức được OR với nhau
+        - 'has(jwt.roles) && "analyst" in jwt.roles
+           && mcp.tool.target == "openmetadata"
+           && mcp.tool.name in ["search_metadata", "get_entity_details", ...]'
+        ...
+        - 'has(jwt.roles) && "kube_operator" in jwt.roles
+           && mcp.tool.target == "radar" && mcp.tool.name == "manage_workload"'
+        - 'has(jwt.roles) && "platform_admin" in jwt.roles'
+\end{lstlisting}
+\textit{B.4. Cô lập mạng} (\texttt{deploy/network/backends.yaml})
+\begin{lstlisting}
+kind: NetworkPolicy
+metadata: {name: backends-from-gateway-only, namespace: mcp}
+spec:
+  podSelector: {}               # mọi pod trong namespace mcp
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels: {kubernetes.io/metadata.name: agentgateway-system}
+\end{lstlisting}
+
+\subsection*{Phụ lục C. Mock MCP server}
+\addcontentsline{toc}{subsection}{Phụ lục C. Mock MCP server}
+\textit{C.1. Bộ khung chung} (\texttt{servers/mockkit.py})
+\begin{lstlisting}[language=Python]
+def new_server(name):
+    # stateless + JSON: bản sao gateway nào cũng phục vụ được mọi yêu cầu
+    return FastMCP(name, host="0.0.0.0", port=8000,
+                   stateless_http=True, json_response=True)
+
+def seen(ctx, target, tool, args):
+    """Ghi lại ai gọi công cụ nào. Không bao giờ ghi bản thân token."""
+    headers = ctx.request_context.request.headers
+    record = {"target": target, "tool": tool, "args": args,
+              "x_agent_id": headers.get("x-agent-id"),
+              "x_forwarded_user": headers.get("x-forwarded-user"),
+              "x_forwarded_groups": headers.get("x-forwarded-groups"),
+              "authorization_present": "authorization" in headers}
+    if token := bearer(headers):          # chỉ trích claim không nhạy cảm
+        claims = decode(token)
+        record["token"] = {k: claims.get(k) for k in
+                           ("iss", "aud", "azp", "sub", "preferred_username", "roles")}
+    print(json.dumps(record))
+    return record
+\end{lstlisting}
+\textit{C.2. Một công cụ mẫu} (\texttt{servers/dbt/server.py})
+\begin{lstlisting}[language=Python]
+@mcp.tool()
+def test(ctx, selector=""):
+    """EXECUTE: run dbt data tests. Mock: nothing is run."""
+    who = seen(ctx, "dbt", "test", {"selector": selector})
+    return {"result": "mock: dbt test -> PASS=17 WARN=1 ERROR=1",
+            "seen_by_mock": who}
+\end{lstlisting}
+
+\subsection*{Phụ lục D. Danh tính AI Agent}
+\addcontentsline{toc}{subsection}{Phụ lục D. Danh tính AI Agent}
+\textit{D.1. Định nghĩa một client agent} (\texttt{deploy/keycloak/realm-config.yaml})
+\begin{lstlisting}
+{"clientId": "cluster-observer-agent",
+ "publicClient": false, "serviceAccountsEnabled": true,
+ "standardFlowEnabled": false, "directAccessGrantsEnabled": false,
+ "secret": "${CLUSTER_OBSERVER_AGENT_SECRET}",
+ "protocolMappers": [ audience mcp-gateway, client roles -> claim "roles" ]}
+...
+"users": [{"serviceAccountClientId": "cluster-observer-agent",
+           "clientRoles": {"mcp-gateway": ["kube_viewer"]}}, ...]
+\end{lstlisting}
+\textit{D.2. Nạp agent vào realm} (\texttt{deploy/keycloak/setup-agents.sh})
+\begin{lstlisting}[language=bash]
+for cid in <client có secret>; do       # thay giá trị giữ chỗ bằng secret thật
+  sec=$(kubectl get secret agent-client-secrets -o jsonpath={.data.$cid} | base64 -d)
+  json=$(jq '(.clients[] | select(.clientId == $c)).secret = $s' ...)
+done
+# import một phần: chỉ client agent và vai trò, giữ nguyên mcp-gateway
+kcadm.sh create partialImport -r mcp  (ifResourceExists: OVERWRITE)
+kcadm.sh add-roles --uusername service-account-$cid --rolename $role
+\end{lstlisting}
+
+\subsection*{Phụ lục E. Tự động hóa triển khai}
+\addcontentsline{toc}{subsection}{Phụ lục E. Tự động hóa triển khai}
+\textit{E.1. Script khởi động} (\texttt{ops/up.ps1})
+\begin{lstlisting}
+function Run { & $args[0] $args[1..]; if ($LASTEXITCODE -ne 0) { Die "..." } }
+function WaitFor($what, $timeoutSec, $check) {      # chờ có thời hạn
+    while (-not (& $check)) { if (quá hạn) { Die "timed out waiting for $what" } }
+}
+function Forward($port, ...) {                       # chỉ mở khi cổng còn trống
+    if ((HttpCode "http://localhost:$port/") -ne 0) { "already answers" }
+    else { Start-Process kubectl "port-forward ..." -WindowStyle Hidden }
+}
+Step "0. Preflight"     # công cụ, Docker, context, CRD, image mock
+Step "1. Kubernetes layers"; Run bash scripts/up.sh
+Step "2. Real radar";   Run helm upgrade -i radar-real ...
+...
+Step "6. Gateway"; WaitFor "the gateway ..." 600 { GatewayReady }
+\end{lstlisting}
+\textit{E.2. Script dọn dẹp} (\texttt{ops/down.ps1})
+\begin{lstlisting}
+& kind delete cluster --name $ClusterName
+if ($LASTEXITCODE -ne 0) { Write-Error "Failed to delete ..."; exit $LASTEXITCODE }
+\end{lstlisting}
+
+\subsection*{Phụ lục F. Giám sát allow/deny}
+\addcontentsline{toc}{subsection}{Phụ lục F. Giám sát allow/deny}
+\textit{F.1. Bổ sung trường vào access log} (\texttt{observability/access-logs/policy.yaml})
+\begin{lstlisting}
+frontend:
+  accessLog:
+    attributes:
+      add:
+      - {name: user,       expression: 'has(jwt.preferred_username) ? ... : "anonymous"'}
+      - {name: agent_id,   expression: 'has(jwt.azp) ? jwt.azp : ""'}
+      - {name: roles,      expression: 'has(jwt.roles) ? jwt.roles : []'}
+      - {name: mcp_target, expression: 'has(mcp.tool.target) ? mcp.tool.target : ""'}
+      - {name: mcp_tool,   expression: 'has(mcp.tool.name) ? mcp.tool.name : ""'}
+\end{lstlisting}
+\textit{F.2. Truy vấn LogQL đếm deny theo vai trò} (\texttt{observability/grafana/dashboard.yaml})
+\begin{lstlisting}
+sum by (roles) (count_over_time(
+  {namespace="agentgateway-system"}
+  |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool`
+  | regexp `roles=(?P<roles>\[[^]]*\])` [$__interval]))
+\end{lstlisting}
