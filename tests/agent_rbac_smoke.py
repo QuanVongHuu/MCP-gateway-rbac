@@ -87,7 +87,8 @@ async def verify_agent(agent: dict, all_tools: list[str]) -> None:
                 assert seen.get("x_agent_id") == client_id, (
                     f"{client_id}: backend saw x-agent-id={seen.get('x_agent_id')}"
                 )
-                assert seen.get("x_forwarded_user") == client_id, (
+                # Keycloak names a service-account user service-account-<client_id>
+                assert seen.get("x_forwarded_user") == f"service-account-{client_id}", (
                     f"{client_id}: backend saw x-forwarded-user={seen.get('x_forwarded_user')}"
                 )
 

@@ -1,0 +1,4 @@
+observed_catalog_count=20
+hidden_tool=airflow_pause_dag
+direct_call_status=400 Bad Request
+client_exit_code=1

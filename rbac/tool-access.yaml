@@ -1,7 +1,7 @@
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
-  name: ai-agent-tool-access
+  name: tool-access
   namespace: mcp
 spec:
   targetRefs:
@@ -14,6 +14,19 @@ spec:
         action: Allow
         policy:
           matchExpressions:
+          # analyst — OpenMetadata read tools
+          - 'has(jwt.roles) && "analyst" in jwt.roles && mcp.tool.target == "openmetadata" && mcp.tool.name in ["search_metadata", "get_entity_details", "get_entity_lineage"]'
+          # bi_engineer — OpenMetadata read tools + patch_entity
+          - 'has(jwt.roles) && "bi_engineer" in jwt.roles && mcp.tool.target == "openmetadata" && mcp.tool.name in ["search_metadata", "get_entity_details", "get_entity_lineage", "patch_entity"]'
+          # data_engineer — radar read tools, all of spark-history, OpenMetadata read tools, dbt and airflow read tools
+          - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "radar" && mcp.tool.name in ["list_namespaces", "list_resources", "get_pod_logs"]'
+          - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "spark-history"'
+          - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "openmetadata" && mcp.tool.name in ["search_metadata", "get_entity_details", "get_entity_lineage"]'
+          - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "dbt" && mcp.tool.name in ["list_metrics", "query_metrics", "get_model_health", "get_lineage"]'
+          - 'has(jwt.roles) && "data_engineer" in jwt.roles && mcp.tool.target == "airflow" && mcp.tool.name in ["list_dags", "get_dag_run", "get_task_logs"]'
+          # data_admin — everything, including backends added later
+          - 'has(jwt.roles) && "data_admin" in jwt.roles'
+          # --- AI Agent capability roles (service-account clients, deploy/keycloak/setup-agents.sh) ---
           # Kubernetes/Radar read access.
           - 'has(jwt.roles) && ("kube_viewer" in jwt.roles || "kube_operator" in jwt.roles) && mcp.tool.target == "radar" && mcp.tool.name in ["list_namespaces", "list_resources", "get_pod_logs"]'
           # Kubernetes/Radar write-shaped access.

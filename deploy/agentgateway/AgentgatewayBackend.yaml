@@ -1,4 +1,3 @@
-# One backend multiplexes every mock. Tool names reach clients as {target}_{tool}, e.g. radar_list_namespaces.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend
 metadata:
@@ -10,20 +9,25 @@ spec:
     targets:
     - name: radar
       static:
-        host: radar.mcp.svc.cluster.local
-        port: 80
+        # the real radar (deploy/real-servers/radar). The mock is radar.mcp.svc.cluster.local port 80
+        host: radar-real.mcp.svc.cluster.local
+        port: 9280
         path: /mcp
         protocol: StreamableHTTP
     - name: spark-history
       static:
-        host: spark-history.mcp.svc.cluster.local
-        port: 80
+        # the real Spark History Server MCP in Docker (deploy/real-servers/spark-history).
+        # The mock is spark-history.mcp.svc.cluster.local port 80
+        host: spark-history-real
+        port: 18888
         path: /mcp
         protocol: StreamableHTTP
     - name: openmetadata
       static:
-        host: openmetadata.mcp.svc.cluster.local
-        port: 80
+        # the real OpenMetadata in Docker (deploy/real-servers/openmetadata), reached over Docker's
+        # `kind` network. The mock is openmetadata.mcp.svc.cluster.local port 80
+        host: openmetadata-real
+        port: 8585
         path: /mcp
         protocol: StreamableHTTP
     - name: dbt

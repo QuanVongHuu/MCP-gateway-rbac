@@ -1,38 +1,60 @@
 #!/usr/bin/env bash
+# Applies the layers in build order (README "How to leverage it"; guideline §2 to §7). Safe to re-run.
+#
+# Expects the kind cluster, the Gateway API CRDs, the agentgateway Helm charts and the mock image
+# (README "Quick start"). It does not start the real servers: AgentgatewayBackend.yaml points radar,
+# openmetadata and spark-history at them, and the gateway fails for every caller while one target
+# is down. ./run.sh at the repo root runs this script and starts them.
 set -euo pipefail
+export MSYS_NO_PATHCONV=1   # Git Bash on Windows rewrites /opt/... paths without this
+cd "$(dirname "$0")/.."
 
-repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-kubectl_bin=${KUBECTL_BIN:-kubectl}
+step() { echo; echo "== $1"; }
 
-command -v "$kubectl_bin" >/dev/null
+step "2. gateway, mock backends, route"
+kubectl apply -f deploy/agentgateway/Gateway.yaml
+kubectl apply -f servers/k8s/mocks.yaml
+kubectl apply -f deploy/agentgateway/AgentgatewayBackend.yaml -f deploy/agentgateway/HTTPRoute.yaml
 
-if ! "$kubectl_bin" get crd agentgatewaypolicies.agentgateway.dev >/dev/null 2>&1; then
-  echo "agentgateway CRDs are not installed. Install the pinned chart before running this script." >&2
-  exit 1
+step "3. Keycloak and realm mcp"
+kubectl apply -f deploy/keycloak/keycloak.yaml
+kubectl rollout status deploy/keycloak -n keycloak --timeout=300s
+# rollout status returns before Keycloak answers: the Deployment has no readiness probe
+until kubectl exec -n keycloak deploy/keycloak -- /opt/keycloak/bin/kcadm.sh config credentials \
+    --server http://localhost:8080 --realm master --user admin --password admin >/dev/null 2>&1; do
+  sleep 5
+done
+# setup-realm.sh deletes and rebuilds the realm, so only run it when the realm is missing
+if kubectl exec -n keycloak deploy/keycloak -- /opt/keycloak/bin/kcadm.sh get realms/mcp >/dev/null 2>&1; then
+  echo "realm mcp exists, keeping it (rebuild: bash deploy/keycloak/setup-realm.sh, then this script)"
+else
+  bash deploy/keycloak/setup-realm.sh
 fi
 
-"$repo_dir/scripts/bootstrap-agent-secrets.sh"
+step "3b. AI Agent service-account clients"
+bash scripts/bootstrap-agent-secrets.sh
+bash deploy/keycloak/setup-agents.sh
 
-"$kubectl_bin" apply -f "$repo_dir/deploy/keycloak/realm-config.yaml"
-"$kubectl_bin" apply -f "$repo_dir/deploy/keycloak/keycloak.yaml"
-"$kubectl_bin" -n keycloak rollout status deployment/keycloak --timeout=180s
+step "4-5. authentication, caller identity, token exchange"
+# the gateway's client secret for token exchange, copied from Keycloak so it follows a rebuilt realm
+kc() { kubectl exec -n keycloak deploy/keycloak -- /opt/keycloak/bin/kcadm.sh "$@"; }
+client=$(kc get clients -r mcp -q clientId=mcp-gateway --fields id --format csv --noquotes | tr -d '\r')
+secret=$(kc get clients/"$client"/client-secret -r mcp --fields value --format csv --noquotes | tr -d '\r')
+kubectl create secret generic mcp-gateway-client-secret -n mcp --from-literal=clientSecret="$secret" \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f deploy/auth/jwt.yaml -f deploy/identity/openmetadata.yaml
 
-"$kubectl_bin" apply -f "$repo_dir/servers/k8s/mocks.yaml"
-"$kubectl_bin" -n mcp rollout status deployment/radar --timeout=120s
-"$kubectl_bin" -n mcp rollout status deployment/spark-history --timeout=120s
-"$kubectl_bin" -n mcp rollout status deployment/openmetadata --timeout=120s
-"$kubectl_bin" -n mcp rollout status deployment/dbt --timeout=120s
-"$kubectl_bin" -n mcp rollout status deployment/airflow --timeout=120s
+step "4. tool access"
+kubectl apply -f rbac/tool-access.yaml
+kubectl apply -f deploy/identity/kubernetes-rbac.yaml
 
-"$kubectl_bin" apply -f "$repo_dir/deploy/agentgateway/Gateway.yaml"
-"$kubectl_bin" apply -f "$repo_dir/deploy/agentgateway/AgentgatewayBackend.yaml"
-"$kubectl_bin" apply -f "$repo_dir/deploy/agentgateway/HTTPRoute.yaml"
-"$kubectl_bin" apply -f "$repo_dir/deploy/auth/keycloak-reference-grant.yaml"
-"$kubectl_bin" apply -f "$repo_dir/deploy/auth/jwt.yaml"
-"$kubectl_bin" apply -f "$repo_dir/rbac/tool-access.yaml"
-"$kubectl_bin" apply -f "$repo_dir/deploy/identity/kubernetes-rbac.yaml"
-"$kubectl_bin" apply -f "$repo_dir/deploy/network/backends.yaml"
-"$kubectl_bin" apply -f "$repo_dir/observability/access-logs/policy.yaml"
+step "6. network"
+kubectl apply -f deploy/network/backends.yaml
 
-echo "Applied AI Agent authentication, tool RBAC, backend RBAC, network and audit policies."
-echo "Verify every AgentgatewayPolicy reports Accepted=True before testing."
+step "7. access logs"
+kubectl apply -f observability/access-logs/policy.yaml
+
+echo
+kubectl get agentgatewaypolicy -A
+echo
+echo "Layers applied."

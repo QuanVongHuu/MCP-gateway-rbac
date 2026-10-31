@@ -3,6 +3,8 @@
 **What:** the policy: which role may call which MCP tool. It is the source of truth for authorization, kept apart from infrastructure because it changes often and needs its own review.
 
 **Contains:**
+- `tool-access.yaml`: an `AgentgatewayPolicy` on the MCP backend with `Allow` match expressions.
+- `policy-overlap-experiment.md`: the test report on how overlapping policies combine, and why the policy is one Allow policy on the backend.
 - `tool-access.yaml`: deny-by-default `AgentgatewayPolicy` with `Allow` expressions for the ten AI Agent capability roles.
 
 **Rules of the format:**

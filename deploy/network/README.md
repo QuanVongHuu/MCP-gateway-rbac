@@ -1,8 +1,9 @@
-# deploy/network
+deploy/network
 
 **What:** the network boundary that makes the gateway the only way into the backends.
 
 **Contains:**
+
 - `backends.yaml`: a `NetworkPolicy` selecting the mock MCP pods and allowing port 8000 ingress only from namespace `agentgateway-system`.
 
 **README mapping:** *Network* checkpoint. Build step 6, guideline §6.

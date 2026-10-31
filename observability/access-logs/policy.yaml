@@ -1,24 +1,29 @@
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
-  name: ai-agent-access-logs
-  namespace: agentgateway-system
+    name: access-logs
+    namespace: agentgateway-system
 spec:
-  targetRefs:
-  - group: gateway.networking.k8s.io
-    kind: Gateway
-    name: agentgateway-proxy
-  frontend:
-    accessLog:
-      attributes:
-        add:
-        - name: agent_id
-          expression: 'has(jwt.azp) ? jwt.azp : ""'
-        - name: agent_roles
-          expression: 'has(jwt.roles) ? jwt.roles : []'
-        - name: mcp_method
-          expression: 'has(mcp.methodName) ? mcp.methodName : ""'
-        - name: mcp_target
-          expression: 'has(mcp.tool.target) ? mcp.tool.target : ""'
-        - name: mcp_tool
-          expression: 'has(mcp.tool.name) ? mcp.tool.name : ""'
+    targetRefs:
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        name: agentgateway-proxy
+    frontend:
+      accessLog:
+        attributes:
+          add:
+            - name: user
+              expression: 'has(jwt.preferred_username) ? jwt.preferred_username :
+              "anonymous"'
+            - name: agent_id
+              expression: 'has(jwt.azp) ? jwt.azp : ""'
+            - name: agent_id
+              expression: 'has(jwt.azp) ? jwt.azp : ""'
+            - name: roles
+              expression: 'has(jwt.roles) ? jwt.roles : []'
+            - name: mcp_method
+              expression: 'has(mcp.methodName) ? mcp.methodName : ""'
+            - name: mcp_target
+              expression: 'has(mcp.tool.target) ? mcp.tool.target : ""'
+            - name: mcp_tool
+              expression: 'has(mcp.tool.name) ? mcp.tool.name : ""'

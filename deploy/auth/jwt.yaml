@@ -1,7 +1,29 @@
+# Authentication + caller identity for every request through the Gateway (guideline §4 and §5).
+#
+# 1. jwtAuthentication: a request needs a valid Keycloak token (realm `mcp`, audience `mcp-gateway`).
+#    mode Strict rejects a missing or invalid token with 401.
+# 2. transformation: after the token is verified, x-forwarded-user / x-forwarded-groups are SET from
+#    its claims. `set` replaces whatever the client sent, so a caller cannot forge these headers.
+#    The token itself is not forwarded to the backends.
+# 3. The caller's token is moved from Authorization to the private header x-caller-token, only so the
+#    token exchange for openmetadata (deploy/identity/openmetadata.yaml) can read it. The second
+#    policy in this file removes x-caller-token from every backend request, after the exchange has
+#    run. Keep the two policies together: without the second one every backend receives the
+#    caller's token. A new target gets no token unless it has its own exchange policy.
+#    (By default the gateway deletes the token right after validating it, and the exchange then
+#    fails with "subject token missing"; preserveToken keeps it long enough to be moved.)
+#
+# `transformation` must sit directly under `traffic`, beside `jwtAuthentication`. Nested inside
+# `jwtAuthentication` the API server rejects the file (unknown field) and the previously applied
+# policy keeps running without the header rewrite, so forged headers reach the backends.
+#
+# This file is not authentication only. Without the transformation the backends get no caller
+# identity: the real radar then rejects the gateway, which fails `initialize` for every caller,
+# and the token exchange has no token to exchange. tests/curl/run.sh checks all of it.
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
-  name: ai-agent-jwt
+  name: jwt
   namespace: agentgateway-system
 spec:
   targetRefs:
@@ -11,25 +33,44 @@ spec:
   traffic:
     jwtAuthentication:
       mode: Strict
+      preserveToken: true
       providers:
       - issuer: http://localhost:8002/realms/mcp
         audiences: [mcp-gateway]
         jwks:
           remote:
             jwksPath: /realms/mcp/protocol/openid-connect/certs
-            cacheDuration: 5m
+            cacheDuration: "5m"
             backendRef:
               group: ""
               kind: Service
               name: keycloak
               namespace: keycloak
-              port: 8080
+              port: 80          # the Service port, not the container's 8080
     transformation:
       request:
         set:
-        - name: x-agent-id
-          value: default(jwt.azp, jwt.sub)
         - name: x-forwarded-user
-          value: default(jwt.azp, jwt.sub)
+          value: "jwt.preferred_username"
+        - name: x-agent-id
+          value: "has(jwt.azp) ? jwt.azp : ''"
         - name: x-forwarded-groups
-          value: default(jwt.kube_group, '')
+          value: "has(jwt.roles) ? jwt.roles.join(',') : ''"
+        - name: x-caller-token
+          value: 'request.headers["authorization"]'
+        remove: [authorization]
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: strip-caller-token
+  namespace: mcp
+spec:
+  targetRefs:
+  - group: agentgateway.dev
+    kind: AgentgatewayBackend
+    name: mcp-backend
+  backend:
+    transformation:
+      request:
+        remove: [x-caller-token]

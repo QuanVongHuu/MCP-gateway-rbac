@@ -1,3 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+  
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,57 +16,29 @@ spec:
       app: keycloak
   template:
     metadata:
-      labels:
+      labels: 
         app: keycloak
     spec:
       containers:
       - name: keycloak
-        image: quay.io/keycloak/keycloak:26.2.5
-        args: ["start-dev", "--import-realm"]
+        image: quay.io/keycloak/keycloak:26.2
+        args:
+          - start-dev
         env:
-        - name: KC_BOOTSTRAP_ADMIN_USERNAME
-          valueFrom: {secretKeyRef: {name: keycloak-bootstrap, key: username}}
-        - name: KC_BOOTSTRAP_ADMIN_PASSWORD
-          valueFrom: {secretKeyRef: {name: keycloak-bootstrap, key: password}}
-        - name: KC_HOSTNAME
-          value: http://localhost:8002
-        - name: KC_HTTP_ENABLED
-          value: "true"
-        - name: CLUSTER_OBSERVER_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: cluster-observer-agent}}
-        - name: INCIDENT_RESPONSE_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: incident-response-agent}}
-        - name: SPARK_DIAGNOSTIC_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: spark-diagnostic-agent}}
-        - name: METADATA_DISCOVERY_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: metadata-discovery-agent}}
-        - name: METADATA_STEWARD_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: metadata-steward-agent}}
-        - name: DBT_QUALITY_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: dbt-quality-agent}}
-        - name: AIRFLOW_MONITOR_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: airflow-monitor-agent}}
-        - name: AIRFLOW_OPERATOR_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: airflow-operator-agent}}
-        - name: PLATFORM_ADMIN_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: platform-admin-agent}}
-        - name: NO_ACCESS_AGENT_SECRET
-          valueFrom: {secretKeyRef: {name: agent-client-secrets, key: no-access-agent}}
+          - name: KC_HOSTNAME
+            value: http://localhost:8002
+          - name: KC_BOOTSTRAP_ADMIN_USERNAME
+            value: admin
+          - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+            value: admin
         ports:
-        - {name: http, containerPort: 8080}
-        readinessProbe:
-          httpGet: {path: /realms/mcp, port: http}
-          initialDelaySeconds: 20
-          periodSeconds: 5
-        resources:
-          requests: {cpu: 100m, memory: 512Mi}
-          limits: {memory: 1Gi}
+          - containerPort: 8080
         volumeMounts:
-        - {name: realm, mountPath: /opt/keycloak/data/import, readOnly: true}
+          - name: data
+            mountPath: /opt/keycloak/data
       volumes:
-      - name: realm
-        configMap:
-          name: mcp-realm
+        - name: data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -68,7 +46,8 @@ metadata:
   name: keycloak
   namespace: keycloak
 spec:
-  selector:
-    app: keycloak
+  selector: {app: keycloak}
   ports:
-  - {name: http, port: 8080, targetPort: http}
+    - name: http
+      port: 80
+      targetPort: 8080

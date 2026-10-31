@@ -1,0 +1,21 @@
+[
+  {"user": "analyst.user",  "tool": "openmetadata_search_metadata",    "args": {"query": "orders"}, "expect": "allow"},
+  {"user": "analyst.user",  "tool": "openmetadata_patch_entity",       "args": {}, "expect": "deny"},
+  {"user": "analyst.user",  "tool": "radar_list_namespaces",           "args": {}, "expect": "deny"},
+
+  {"user": "engineer.user", "tool": "radar_list_namespaces",           "args": {}, "expect": "allow"},
+  {"user": "engineer.user", "tool": "spark-history_list_applications", "args": {}, "expect": "allow"},
+  {"user": "engineer.user", "tool": "dbt_list_metrics",                "args": {}, "expect": "allow"},
+  {"user": "engineer.user", "tool": "radar_manage_workload",           "args": {}, "expect": "deny"},
+  {"user": "engineer.user", "tool": "airflow_trigger_dag",             "args": {}, "expect": "deny"},
+  {"user": "engineer.user", "tool": "openmetadata_patch_entity",       "args": {}, "expect": "deny"},
+
+  {"user": "multi.user",    "tool": "openmetadata_search_metadata",    "args": {"query": "orders"}, "expect": "allow"},
+  {"user": "multi.user",    "tool": "radar_manage_workload",           "args": {}, "expect": "deny"},
+
+  {"user": "admin.user",    "tool": "airflow_list_dags",               "args": {}, "expect": "allow"},
+  {"user": "admin.user",    "tool": "radar_list_namespaces",           "args": {}, "expect": "allow"},
+
+  {"user": "nobody.user",   "tool": "radar_list_namespaces",           "args": {}, "expect": "deny"},
+  {"user": "nobody.user",   "tool": "openmetadata_search_metadata",    "args": {}, "expect": "deny"}
+]

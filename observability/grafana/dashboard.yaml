@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard
+  namespace: observability
+data:
+  mcp-allow-deny.json: |
+    {
+      "annotations": {"list": []},
+      "editable": false,
+      "graphTooltip": 1,
+      "panels": [
+        {
+          "type": "stat", "title": "Allowed tool calls", "id": 1,
+          "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+          "targets": [{"refId": "A", "expr": "sum(count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=200` [$__auto]))", "queryType": "instant"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "green"}}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "stat", "title": "Denied tool calls", "id": 2,
+          "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+          "targets": [{"refId": "A", "expr": "sum(count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool` [$__auto]))", "queryType": "instant"}],
+          "fieldConfig": {"defaults": {"color": {"mode": "fixed", "fixedColor": "red"}}, "overrides": []},
+          "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}}
+        },
+        {
+          "type": "timeseries", "title": "Allow vs deny over time", "id": 3,
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {"refId": "A", "legendFormat": "allow", "expr": "sum(count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=200` [$__interval]))"},
+            {"refId": "B", "legendFormat": "deny", "expr": "sum(count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool` [$__interval]))"}
+          ],
+          "fieldConfig": {"defaults": {"custom": {"drawStyle": "bars", "fillOpacity": 40}}, "overrides": []}
+        },
+        {
+          "type": "timeseries", "title": "Allow / deny by user", "id": 4,
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+          "targets": [
+            {"refId": "A", "legendFormat": "allow {{user}}", "expr": "sum by (user) (count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=200` | regexp `user=\\\"?(?P<user>[^\\\" ]+)` [$__interval]))"},
+            {"refId": "B", "legendFormat": "deny {{user}}", "expr": "sum by (user) (count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool` | regexp `user=\\\"?(?P<user>[^\\\" ]+)` [$__interval]))"}
+          ]
+        },
+        {
+          "type": "timeseries", "title": "Allow / deny by roles", "id": 5,
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+          "targets": [
+            {"refId": "A", "legendFormat": "allow {{roles}}", "expr": "sum by (roles) (count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=200` | regexp `roles=(?P<roles>\\[[^]]*\\])` [$__interval]))"},
+            {"refId": "B", "legendFormat": "deny {{roles}}", "expr": "sum by (roles) (count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool` | regexp `roles=(?P<roles>\\[[^]]*\\])` [$__interval]))"}
+          ]
+        },
+        {
+          "type": "timeseries", "title": "Allow / deny by target and tool", "id": 6,
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+          "targets": [
+            {"refId": "A", "legendFormat": "allow {{target}}_{{tool}}", "expr": "sum by (target, tool) (count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=200` | regexp `mcp_target=\\\"?(?P<target>[^\\\" ]*)` | regexp `mcp_tool=\\\"?(?P<tool>[^\\\" ]*)` [$__interval]))"},
+            {"refId": "B", "legendFormat": "deny {{target}}_{{tool}}", "expr": "sum by (target, tool) (count_over_time({namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool` | regexp `mcp_target=\\\"?(?P<target>[^\\\" ]*)` | regexp `mcp_tool=\\\"?(?P<tool>[^\\\" ]*)` [$__interval]))"}
+          ]
+        },
+        {
+          "type": "logs", "title": "Calls by user, roles and tool", "id": 7,
+          "gridPos": {"h": 10, "w": 12, "x": 0, "y": 16},
+          "targets": [{"refId": "A", "expr": "{namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` | regexp `user=\\\"?(?P<user>[^\\\" ]+)` | regexp `roles=(?P<roles>\\[[^]]*\\])` | regexp `mcp_target=\\\"?(?P<target>[^\\\" ]*)` | regexp `mcp_tool=\\\"?(?P<tool>[^\\\" ]*)`", "queryType": "range"}],
+          "options": {"showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending"}
+        },
+        {
+          "type": "logs", "title": "Denied calls", "id": 8,
+          "gridPos": {"h": 10, "w": 12, "x": 12, "y": 16},
+          "targets": [{"refId": "A", "expr": "{namespace=\"agentgateway-system\"} |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool` | regexp `user=\\\"?(?P<user>[^\\\" ]+)` | regexp `roles=(?P<roles>\\[[^]]*\\])` | regexp `mcp_target=\\\"?(?P<target>[^\\\" ]*)` | regexp `mcp_tool=\\\"?(?P<tool>[^\\\" ]*)`", "queryType": "range"}],
+          "options": {"showTime": true, "showLabels": true, "wrapLogMessage": true, "sortOrder": "Descending"}
+        }
+      ],
+      "refresh": "10s",
+      "schemaVersion": 41,
+      "tags": ["mcp", "rbac", "audit"],
+      "templating": {"list": []},
+      "time": {"from": "now-1h", "to": "now"},
+      "timezone": "browser",
+      "title": "MCP Gateway - Allow and Deny",
+      "uid": "mcp-allow-deny",
+      "version": 1
+    }

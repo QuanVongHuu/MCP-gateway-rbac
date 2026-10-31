@@ -1,0 +1,43 @@
+# Token exchange for the openmetadata target only (guideline §5).
+#
+# For calls routed to this target, the gateway trades the caller's token (aud mcp-gateway) at Keycloak
+# for one whose audience is only `openmetadata`, and sends that as Authorization: Bearer. The other
+# targets keep getting identity headers and no token.
+#
+# sectionName is the target's name inside the AgentgatewayBackend, so this policy touches one target.
+#
+# The caller's token is read from x-caller-token, where deploy/auth/jwt.yaml moves it; that header is
+# removed before the request leaves the gateway. The exchanged token has no `roles` claim: the
+# backend applies its own permissions to preferred_username.
+#
+# Needs Secret `mcp-gateway-client-secret` (key `clientSecret`) in this namespace. It is not in git;
+# create it from Keycloak (guideline §5).
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: openmetadata-token-exchange
+  namespace: mcp
+spec:
+  targetRefs:
+  - group: agentgateway.dev
+    kind: AgentgatewayBackend
+    name: mcp-backend
+    sectionName: openmetadata
+  backend:
+    auth:
+      oauthTokenExchange:
+        backendRef:
+          name: keycloak
+          namespace: keycloak
+          port: 80
+        path: /realms/mcp/protocol/openid-connect/token
+        subjectToken:
+          source:
+            header:
+              name: x-caller-token
+              prefix: "Bearer "
+        clientAuth:
+          clientId: mcp-gateway
+          secretRef:
+            name: mcp-gateway-client-secret
+        audiences: [openmetadata]
