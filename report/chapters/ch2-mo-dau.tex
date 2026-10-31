@@ -1,0 +1,16 @@
+\chuong{GIỚI THIỆU ĐỀ TÀI}
+\subsection{Bối cảnh}
+\todo{Data team dùng AI Agent truy cập Kubernetes (Radar), Spark History, OpenMetadata, dbt, Airflow qua MCP.}
+\subsection{Vấn đề cần giải quyết}
+\todo{Xác thực rời rạc theo từng server; thiếu phân quyền đến mức tool; thiếu audit; agent có thể gọi thẳng backend; khó dựng môi trường thử nghiệm.}
+\subsection{Mục tiêu}
+\subsubsection{Mục tiêu chung của nhóm}
+\todo{Một endpoint /mcp, JWT Keycloak, RBAC theo tool, NetworkPolicy, audit.}
+\subsubsection{Mục tiêu của cá nhân}
+\todo{Mock server và danh mục tool; thiết lập AI Agent; observability allow/deny; tự động hóa up/down.}
+\subsection{Đối tượng và phạm vi}
+\todo{PoC trên kind; 5 target, 21 tool; ngoài phạm vi: production, đo hiệu năng, delegated human identity.}
+\subsection{Phân công trong nhóm}
+\bang{Phân công thực hiện}{tab:phancong}{3}{\textbf{Thành phần} & \textbf{Người thực hiện} & \textbf{Ghi chú}}
+\subsection{Phương pháp thực hiện}
+\todo{Configuration-first, lặp theo checkpoint, kiểm chứng bằng test và lưu bằng chứng.}

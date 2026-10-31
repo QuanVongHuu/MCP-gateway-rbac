@@ -1,0 +1,284 @@
+\chuong{PHÂN TÍCH, THIẾT KẾ VÀ TRIỂN KHAI HỆ THỐNG}
+
+Chương này đi từ câu hỏi ``hệ thống cần làm được gì'' đến câu hỏi ``hệ thống được xây như thế nào''. Nửa đầu chương mô tả toàn bộ hệ thống, vì các phần việc cá nhân chỉ có ý nghĩa khi đặt trong bức tranh chung. Nửa sau đi sâu vào bốn phần do sinh viên thực hiện: mock server và danh mục công cụ, danh tính AI Agent, script tự động hóa và dashboard giám sát. Với mỗi phần, báo cáo không chỉ mô tả cách làm mà còn giải thích lý do chọn cách đó và rủi ro nếu làm khác đi. Mã nguồn được trích ở mức ý chính trong phụ lục.
+
+% =====================================================================
+\subsection{Yêu cầu hệ thống}
+
+Yêu cầu được rút ra từ một tình huống cụ thể: data team muốn cho AI Agent dùng công cụ trên năm hệ thống (Kubernetes, Spark, OpenMetadata, dbt, Airflow). Nếu mỗi agent kết nối thẳng tới từng hệ thống, team phải cấp và thu hồi quyền ở năm nơi khác nhau, mỗi nơi một cơ chế, và không có chỗ nào cho biết agent đã làm gì. Hệ thống cần giải quyết ba nhóm vấn đề: dùng được (chức năng), dùng an toàn (bảo mật) và dễ vận hành.
+
+\subsubsection{Yêu cầu chức năng}
+
+Về chức năng, agent chỉ cần biết một địa chỉ duy nhất và nhìn thấy công cụ của cả năm hệ thống như của một server. Vì các hệ thống có thể đặt tên công cụ trùng nhau, tên trong danh mục chung phải được phân biệt rõ. Danh mục mỗi agent nhìn thấy cũng phải khớp với quyền của nó. Điều này quan trọng với AI Agent hơn với con người: mô hình ngôn ngữ chọn công cụ dựa trên danh sách được đưa cho nó, nên nếu danh sách chứa công cụ bị cấm, agent sẽ thử gọi, bị lỗi và tốn lượt suy luận vô ích.
+
+\subsubsection{Yêu cầu bảo mật}
+
+Khi mọi lưu lượng đi qua gateway, gateway trở thành nơi duy nhất quyết định ai được làm gì. Vì vậy các yêu cầu bảo mật đều xoay quanh việc giữ cho điểm quyết định này không bị vượt qua. Thứ nhất, mọi yêu cầu phải có token hợp lệ, và khi không có quy tắc nào cho phép thì mặc định từ chối. Mặc định từ chối an toàn hơn mặc định cho phép, vì khi quên viết quy tắc thì hậu quả chỉ là agent thiếu quyền chứ không phải thừa quyền. Thứ hai, token gốc không được gửi tiếp xuống backend. Nếu gửi, một backend bị tấn công có thể lấy token đó để gọi sang hệ thống khác dưới danh nghĩa người dùng. Thứ ba, backend tin danh tính do gateway gửi xuống, nên phải bảo đảm không ai gọi thẳng được backend mà bỏ qua gateway. Cuối cùng, mọi lệnh gọi, kể cả bị chặn, đều phải được ghi lại để trả lời được câu hỏi ``ai đã làm gì''.
+
+\subsubsection{Yêu cầu vận hành}
+
+Môi trường này được dựng trên máy cá nhân và thường xuyên bị xóa đi dựng lại. Nếu việc dựng cần hàng chục lệnh thủ công, mỗi lần dựng là một lần có thể sai, và kết quả kiểm thử giữa các lần không còn so sánh được với nhau. Do đó toàn bộ hệ thống phải dựng được bằng một lệnh, chạy lại nhiều lần vẫn cho cùng kết quả. Kết quả phân quyền cũng phải xem được bằng biểu đồ, vì đọc log thô chỉ phù hợp khi đã biết trước cần tìm gì. Bảng~\ref{tab:yeucau} tóm tắt các yêu cầu; mã yêu cầu được dùng lại ở Chương 5.
+
+\begin{table}[H]\centering\caption{Danh sách yêu cầu hệ thống}\label{tab:yeucau}
+{\singlespacing\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|c|p{2.6cm}|X|}\hline
+\textbf{Mã} & \textbf{Nhóm} & \textbf{Yêu cầu} \\ \hline
+F1 & Chức năng & Một điểm truy cập MCP duy nhất cho mọi backend \\ \hline
+F2 & Chức năng & Danh mục công cụ hợp nhất, tên không trùng lặp \\ \hline
+F3 & Chức năng & Danh mục hiển thị được lọc theo quyền của người gọi \\ \hline
+S1 & Bảo mật & Bắt buộc token hợp lệ; mặc định từ chối \\ \hline
+S2 & Bảo mật & Phân quyền đến mức từng công cụ; nhiều vai trò thì hợp quyền \\ \hline
+S3 & Bảo mật & Không chuyển tiếp token gốc tới backend thông thường \\ \hline
+S4 & Bảo mật & Backend chỉ nhận kết nối từ gateway \\ \hline
+S5 & Bảo mật & Ghi nhật ký kiểm toán cho mọi lệnh gọi công cụ \\ \hline
+O1 & Vận hành & Khởi tạo toàn bộ hệ thống bằng một lệnh, chạy lại an toàn \\ \hline
+O2 & Vận hành & Quan sát trực quan kết quả allow/deny theo người dùng, vai trò, công cụ \\ \hline
+\end{tabularx}}\end{table}
+
+% =====================================================================
+\subsection{Kiến trúc tổng thể}
+
+Hệ thống gồm năm khối, mỗi khối đặt trong một namespace Kubernetes riêng (Hình~\ref{fig:arch}). Cách chia này có lý do thực tế: namespace vừa gom các thành phần cùng chức năng, vừa là đơn vị để đặt quy tắc mạng, nên ranh giới chức năng cũng trở thành ranh giới bảo mật. Khối client là AI Agent hoặc công cụ thử nghiệm MCP Inspector chạy trên máy cá nhân. Khối định danh là Keycloak, nơi cấp token và công bố khóa để kiểm tra token. Khối gateway là agentgateway, nơi tập trung mọi quyết định bảo mật. Khối backend gồm năm MCP server, và khối giám sát gồm Alloy, Loki và Grafana.
+
+\begin{figure}[H]\centering\includegraphics[width=\textwidth]{system-architecture.png}
+\caption{Kiến trúc tổng thể hệ thống}\label{fig:arch}\end{figure}
+
+Kiến trúc có hai loại backend chạy song song. Ba hệ thống radar, OpenMetadata và Spark History dùng phần mềm thật, còn dbt và Airflow dùng mock. Bên cạnh đó, mock của cả năm hệ thống luôn được chạy sẵn để kiểm thử phân quyền. Lý do là phần mềm thật có thể chậm, lỗi hoặc thay đổi dữ liệu, khiến kết quả kiểm thử dao động vì những nguyên nhân không liên quan đến phân quyền. Mock giúp tách hai câu hỏi ra: câu hỏi ``gateway có phân quyền đúng không'' được trả lời bằng mock, còn câu hỏi ``hệ thống thật có chạy được qua gateway không'' được trả lời bằng backend thật.
+
+Nguyên tắc xuyên suốt của thiết kế là chỉ dùng cấu hình, không viết code cho gateway. Mọi quy tắc bảo mật được khai báo dưới dạng tài nguyên Kubernetes. Lợi ích là quy tắc dễ đọc, dễ xem lại khi review và không phải bảo trì một chương trình riêng. Đổi lại, hệ thống bị giới hạn trong những gì agentgateway hỗ trợ sẵn; một số giới hạn như vậy được nêu ở các mục sau.
+
+% =====================================================================
+\subsection{Luồng xử lý một yêu cầu}
+
+Hình~\ref{fig:seq} dùng sơ đồ tuần tự để mô tả một lệnh gọi công cụ, vì loại sơ đồ này cho thấy rõ thông điệp nào đi từ đâu tới đâu và theo thứ tự nào. Các số (1) đến (7) khớp với nhãn trên sơ đồ kiến trúc.
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[font=\small,
+  tac/.style={draw,fill=gray!10,minimum width=2.3cm,minimum height=8mm,align=center},
+  tn/.style={mui},tl/.style={mui,dashed}]
+\foreach \x/\n/\t in {0/c/{AI Agent},3.3/k/Keycloak,6.6/g/agentgateway,9.9/b/{MCP backend},13.2/o/{Loki /\\ Grafana}}
+  {\node[tac] (\n) at (\x,0) {\t}; \draw[gray] (\n.south) -- ++(0,-12.2);}
+\newcommand{\msg}[5]{\draw[#5] (#1,#3) -- node[above,nhan]{#4} (#2,#3);}
+\msg{0}{3.3}{-1.2}{(1) xin token}{tn}
+\msg{3.3}{0}{-2.0}{JWT: aud, azp, roles}{tl}
+\msg{0}{6.6}{-2.8}{(2) POST /mcp + Bearer token}{tn}
+\draw[mui] (6.6,-3.4) -- ++(0.6,0) |- node[right,nhan,pos=0.25]{(3) xác thực JWT\\(JWKS, cache 5 phút)} (6.65,-4.4);
+\draw[mui] (6.6,-4.9) -- ++(0.6,0) |- node[right,nhan,pos=0.25]{(4) RBAC theo tool\\(CEL, deny-by-default)} (6.65,-5.9);
+\draw[mui] (6.6,-6.4) -- ++(0.6,0) |- node[right,nhan,pos=0.25]{(5) đặt header định danh,\\xóa token gốc} (6.65,-7.4);
+\msg{6.6}{9.9}{-8.3}{tools/call (không có token)}{tn}
+\msg{9.9}{6.6}{-9.1}{kết quả}{tl}
+\msg{6.6}{0}{-9.9}{kết quả / lỗi ``Unknown tool''}{tl}
+\msg{6.6}{13.2}{-10.9}{(7) access log: user, roles, tool, status}{tn}
+\node[nhan,fill=white,draw,dashed] at (8.25,-11.7) {(6) riêng OpenMetadata: token exchange trước bước gửi};
+\end{tikzpicture}
+\caption{Sơ đồ tuần tự của một lệnh gọi công cụ}\label{fig:seq}\end{figure}
+
+Ở bước (1), agent dùng mã định danh và mật khẩu riêng của nó (client ID và client secret) để xin token từ Keycloak. Người dùng thì đăng nhập bằng tên và mật khẩu, nhưng token nhận được có cùng cấu trúc. Token cho biết ba điều: token này dành cho ai (\texttt{aud = mcp-gateway}), ai đang cầm token (\texttt{azp}) và người đó có những vai trò gì (\texttt{roles}). Ở bước (2), agent gửi yêu cầu tới địa chỉ \texttt{/mcp} của gateway và đính kèm token.
+
+Bước (3) đến (5) diễn ra bên trong gateway và có thứ tự bắt buộc. Bước (3) kiểm tra token có thật không, bằng cách đối chiếu chữ ký với khóa công khai của Keycloak. Bước (4) kiểm tra vai trò trong token có được dùng công cụ này không. Bước (5) chỉ chạy khi hai bước trước đều đạt: gateway ghi danh tính người gọi vào header, xóa token gốc rồi chuyển yêu cầu tới backend. Thứ tự này là cốt lõi của thiết kế. Nếu header danh tính được ghi trước khi kiểm tra token, kẻ tấn công có thể tự điền danh tính giả. Nếu token bị xóa trước bước (6), OpenMetadata sẽ không đổi được token. Ở bước (6), riêng với OpenMetadata, gateway đổi token gốc lấy một token mới chỉ dùng được cho OpenMetadata, để hệ thống này tự áp quyền của nó theo đúng người dùng. Cuối cùng, bước (7) ghi lại mọi yêu cầu vào access log, dù kết quả là gì.
+
+Sơ đồ tuần tự chỉ thể hiện trường hợp thành công. Hình~\ref{fig:decision} bổ sung các nhánh bị từ chối. Có hai kiểu từ chối với mã lỗi khác nhau: token không hợp lệ trả về HTTP 401, còn không có quyền dùng công cụ trả về HTTP 400 kèm thông báo \texttt{Unknown tool}. Kiểu thứ hai cho thấy cách gateway xử lý: với người không có quyền, công cụ đó được coi như không tồn tại. Cách này có lợi về bảo mật vì người gọi không biết được công cụ nào có thật mà mình bị cấm. Nhưng nó cũng gây khó khăn cho việc giám sát, vì lỗi phân quyền trông giống lỗi gõ sai tên. Mục~\ref{sec:obs} trình bày cách xử lý vấn đề này trên dashboard.
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[node distance=7mm and 10mm]
+\node[khoi] (req) {Yêu cầu tới \texttt{/mcp}};
+\node[quyetdinh,below=of req] (tok) {Token hợp lệ?};
+\node[khoi,right=of tok,fill=red!8] (e401) {HTTP 401};
+\node[quyetdinh,below=of tok] (m) {Phương thức?};
+\node[khoi,right=of m,xshift=4mm] (list) {Trả danh mục\\đã lọc theo quyền};
+\node[quyetdinh,below=of m] (rule) {Có quy tắc\\cho phép?};
+\node[khoi,right=of rule,fill=red!8] (e400) {HTTP 400\\``Unknown tool''};
+\node[khoi,below=of rule] (hdr) {Đặt header định danh,\\xóa token gốc};
+\node[khoi,below=of hdr,fill=green!8] (be) {Chuyển tới backend\\HTTP 200};
+\node[khoi,left=18mm of rule] (log) {Ghi access log\\(mọi nhánh)};
+\draw[mui] (req) -- (tok);
+\draw[mui] (tok) -- node[above,nhan]{không} (e401);
+\draw[mui] (tok) -- node[left,nhan]{có} (m);
+\draw[mui] (m) -- node[above,nhan]{tools/list} (list);
+\draw[mui] (m) -- node[left,nhan]{tools/call} (rule);
+\draw[mui] (rule) -- node[above,nhan]{không} (e400);
+\draw[mui] (rule) -- node[left,nhan]{có} (hdr);
+\draw[mui] (hdr) -- (be);
+\draw[dashed,gray,thick] (log.north) |- (tok.west); \draw[dashed,gray,thick] (log.east) -- (rule.west); \draw[dashed,gray,thick] (log.south) |- (be.west);
+\end{tikzpicture}
+\caption{Lưu đồ quyết định của gateway}\label{fig:decision}\end{figure}
+
+% =====================================================================
+\subsection{Các thành phần nền tảng của gateway}
+
+Phần này tóm tắt các thành phần do nhóm xây dựng. Các phần việc cá nhân ở mục sau đều dựa trên chúng. Cấu hình được trích ở Phụ lục B.
+
+\subsubsection{Định tuyến và hợp nhất backend}
+
+Mọi yêu cầu có đường dẫn bắt đầu bằng \texttt{/mcp} được chuyển tới một backend của agentgateway, và backend này chứa năm hệ thống đích (target). Khi agent hỏi danh sách công cụ, gateway hỏi cả năm target rồi gộp kết quả. Để không bị trùng tên, gateway luôn thêm tên target vào trước tên công cụ, ví dụ công cụ \texttt{list\_namespaces} của radar trở thành \texttt{radar\_list\_namespaces}. Cách đặt tên này đáp ứng F1 và F2, nhưng cũng tạo ra một ràng buộc: tên target phải giống hệt nhau ở mọi nơi, từ tên mock, tên Service, quy tắc phân quyền đến bộ kiểm thử. Chỉ cần lệch một ký tự, quy tắc phân quyền sẽ không khớp và công cụ bị chặn mà không có lỗi nào chỉ ra nguyên nhân.
+
+\subsubsection{Xác thực và chuyển tiếp định danh}
+
+Quy tắc xác thực được gắn vào Gateway thay vì từng route, nên mọi đường dẫn đều được bảo vệ, kể cả route thêm vào sau này. Gateway lấy khóa công khai từ Keycloak và lưu lại trong năm phút để không phải hỏi Keycloak ở mỗi yêu cầu. Cái giá của việc lưu khóa là khi Keycloak đổi khóa, gateway có thể từ chối token mới trong tối đa năm phút.
+
+Sau khi token hợp lệ, gateway ghi danh tính người gọi vào ba header \texttt{x-forwarded-user}, \texttt{x-forwarded-groups} và \texttt{x-agent-id}. Gateway dùng thao tác ghi đè chứ không phải thêm vào. Điểm này nhỏ nhưng quan trọng: nếu agent tự gửi kèm header \texttt{x-forwarded-user: admin}, giá trị giả sẽ bị thay bằng giá trị lấy từ token. Token gốc được giữ tạm trong một header nội bộ để phục vụ việc đổi token cho OpenMetadata, sau đó bị một quy tắc thứ hai xóa trước khi yêu cầu rời gateway (S3). Hai quy tắc này phải luôn đi cùng nhau, vì thiếu quy tắc thứ hai thì mọi backend đều nhận được token gốc.
+
+\subsubsection{Phân quyền theo công cụ}
+
+Toàn bộ phân quyền nằm trong một chính sách duy nhất. Mỗi quy tắc là một biểu thức logic kiểm tra ba thông tin: vai trò trong token, target và tên công cụ. Ví dụ, một quy tắc có thể viết: ``nếu có vai trò \texttt{analyst} và target là \texttt{openmetadata} và công cụ thuộc nhóm đọc thì cho phép''. Các quy tắc được nối với nhau bằng phép HOẶC: chỉ cần một quy tắc đúng là yêu cầu được cho phép. Nhờ vậy người có nhiều vai trò tự động nhận tổng quyền của các vai trò đó mà không cần viết thêm quy tắc riêng.
+
+Việc dùng một chính sách duy nhất là có chủ đích. Nhóm đã thử chia quy tắc ra nhiều chính sách và thấy cách gateway kết hợp chúng khó đoán, nên chọn gom về một chỗ để dễ kiểm soát. Hiện chính sách chứa hai bộ quy tắc: bốn vai trò cho người dùng và mười vai trò cho AI Agent (mục~\ref{sec:agent}). Do các quy tắc nối bằng HOẶC, thêm bộ quy tắc mới không làm thay đổi quyền của bộ cũ.
+
+\subsubsection{Cô lập mạng}
+
+Một quy tắc mạng (NetworkPolicy) chỉ cho phép lưu lượng vào namespace backend nếu nó đến từ namespace của gateway. Đây là mắt xích giữ cho toàn bộ cơ chế danh tính có giá trị. Backend tin header \texttt{x-forwarded-user} vì giả định chỉ gateway mới gửi được nó. Nếu một pod bất kỳ trong cụm gọi thẳng được backend, pod đó có thể tự đặt header này và vượt qua mọi lớp phân quyền ở trên. Hạn chế hiện tại là hai backend thật chạy bằng Docker nằm ngoài cụm Kubernetes, nên quy tắc mạng này không bảo vệ được chúng. Hạn chế này được nêu lại ở Chương 5.
+
+% =====================================================================
+\subsection{Mock MCP server và danh mục công cụ}
+
+\subsubsection{Lý do sử dụng mock}
+
+Muốn biết phân quyền có đúng không, phải gọi thử từng công cụ với từng vai trò, kể cả những công cụ có tác động như khởi động lại ứng dụng hay chạy một DAG. Gọi các công cụ này trên hệ thống thật có hai vấn đề. Thứ nhất là rủi ro: một lỗi trong quy tắc có thể khiến agent khởi động lại dịch vụ đang chạy. Thứ hai là kết quả không lặp lại được, vì dữ liệu thật thay đổi theo thời gian.
+
+Mock server giải quyết cả hai vấn đề: dữ liệu trả về được cố định sẵn, và các công cụ ghi chỉ trả về thông báo giả chứ không làm gì thật. Ngoài ra, mock còn làm được một việc mà phần mềm thật không làm: nó báo lại chính xác những gì nó nhận được từ gateway. Nhờ đó có thể kiểm tra trực tiếp từ phía backend xem token gốc đã bị xóa chưa (S3) và danh tính có đúng người gọi không. Với phần mềm thật, những điều này chỉ có thể suy đoán.
+
+\subsubsection{Thiết kế bộ khung chung}
+
+Năm mock được viết bằng Python với thư viện FastMCP và dùng chung một module nhỏ (Phụ lục C). Module có hai hàm. Hàm thứ nhất tạo server ở chế độ không lưu phiên (stateless). Chế độ này cần thiết vì gateway có thể chạy nhiều bản sao; nếu server lưu phiên, yêu cầu đi qua một bản sao khác sẽ bị lỗi do không tìm thấy phiên.
+
+Hàm thứ hai ghi lại ``ai đang gọi'' và được gọi ở đầu mỗi công cụ. Hàm này ghi tên target, tên công cụ, tham số, ba header danh tính và cho biết có header \texttt{Authorization} hay không. Nếu có token, hàm chỉ lấy vài thông tin không nhạy cảm như nơi cấp, đối tượng và vai trò, và không bao giờ ghi bản thân token. Đây là một sự cân nhắc: cần đủ thông tin để kiểm thử, nhưng không được biến log thành nơi rò rỉ token. Kết quả vừa được in ra log, vừa được trả về trong trường \texttt{seen\_by\_mock} để bộ kiểm thử so sánh tự động.
+
+Đặt hai hàm này vào module chung giúp cả năm mock ghi nhận theo cùng một cách; khi cần sửa cách ghi, chỉ cần sửa một chỗ. Cả năm mock cũng được đóng gói chung một image và chạy thành năm Deployment, mỗi Deployment có một Service đặt tên đúng bằng tên target.
+
+\subsubsection{Danh mục 21 công cụ}
+
+Mỗi mock mô phỏng những công cụ tiêu biểu nhất của phần mềm gốc, với tên và tham số theo MCP server chính thức của phần mềm đó, để khi chuyển sang phần mềm thật thì quy tắc phân quyền không phải sửa. Danh mục gồm 21 công cụ (Bảng~\ref{tab:tools}), trong đó 15 công cụ chỉ đọc và 6 công cụ có tác động (ghi hoặc thực thi). Việc chia đọc và ghi không chỉ để mô tả mà là nền tảng của thiết kế vai trò: vai trò \textit{viewer} chỉ được dùng công cụ đọc, vai trò \textit{operator} hoặc \textit{editor} được thêm công cụ ghi. Tỷ lệ 15/6 cũng cho thấy phần lớn nhu cầu của agent là tra cứu, nên có thể cấp quyền đọc rộng rãi và chỉ kiểm soát chặt nhóm nhỏ công cụ ghi.
+
+{\singlespacing\renewcommand{\arraystretch}{1.25}\small
+\begin{longtable}{|p{2.4cm}|p{3.8cm}|c|p{6.4cm}|}
+\caption{Danh mục công cụ của hệ thống}\label{tab:tools}\\ \hline
+\textbf{Target} & \textbf{Công cụ} & \textbf{Loại} & \textbf{Chức năng} \\ \hline\endhead
+radar & list\_namespaces & Đọc & Liệt kê namespace của cụm \\ \hline
+radar & list\_resources & Đọc & Tóm tắt tài nguyên theo loại \\ \hline
+radar & get\_pod\_logs & Đọc & Lấy log gần nhất của pod \\ \hline
+radar & manage\_workload & Ghi & Khởi động lại, scale, rollback workload \\ \hline
+spark-history & list\_applications & Đọc & Liệt kê ứng dụng Spark theo trạng thái \\ \hline
+spark-history & get\_stage & Đọc & Chi tiết một stage và chỉ số task \\ \hline
+spark-history & get\_job\_bottlenecks & Đọc & Tìm stage chậm, task lệch, lỗi executor \\ \hline
+openmetadata & search\_metadata & Đọc & Tìm tài sản dữ liệu theo từ khóa, owner, tag \\ \hline
+openmetadata & get\_entity\_details & Đọc & Chi tiết một thực thể theo tên đầy đủ \\ \hline
+openmetadata & get\_entity\_lineage & Đọc & Nguồn phía trên và đích phía dưới \\ \hline
+openmetadata & patch\_entity & Ghi & Sửa mô tả, tag, owner bằng JSON Patch \\ \hline
+dbt & list\_metrics & Đọc & Liệt kê metric của semantic layer \\ \hline
+dbt & query\_metrics & Đọc & Truy vấn metric theo chiều \\ \hline
+dbt & get\_model\_health & Đọc & Trạng thái chạy, test, độ tươi của model \\ \hline
+dbt & get\_lineage & Đọc & Cha và con của một node \\ \hline
+dbt & test & Thực thi & Chạy data test theo selector \\ \hline
+airflow & list\_dags & Đọc & Liệt kê DAG và lần chạy gần nhất \\ \hline
+airflow & get\_dag\_run & Đọc & Trạng thái một lần chạy DAG \\ \hline
+airflow & get\_task\_logs & Đọc & Log của một lần thử task \\ \hline
+airflow & trigger\_dag & Ghi & Kích hoạt một lần chạy mới \\ \hline
+airflow & pause\_dag & Ghi & Tạm dừng DAG \\ \hline
+\end{longtable}}
+
+% =====================================================================
+\subsection{Thiết lập danh tính AI Agent trên Keycloak}\label{sec:agent}
+
+\subsubsection{Hai loại danh tính trong một realm}
+
+Hệ thống phục vụ hai loại người gọi. Người dùng đăng nhập bằng mật khẩu và được gán vai trò theo chức danh: \texttt{analyst}, \texttt{bi\_engineer}, \texttt{data\_engineer} và \texttt{data\_admin}. AI Agent không có người đăng nhập, nên mỗi agent được cấp một client riêng trên Keycloak và tự xin token bằng mã định danh và secret của nó (luồng client credentials).
+
+Một lựa chọn quan trọng là đặt cả người dùng và agent vào cùng một realm, và cùng nhận vai trò từ client \texttt{mcp-gateway}. Nhờ vậy token của hai loại có cùng cấu trúc, và gateway dùng chung một bộ quy tắc cho cả hai mà không cần biết bên kia là người hay máy. Nếu tách thành hai realm, gateway sẽ phải tin hai nơi cấp token và mọi quy tắc phải viết hai lần. Danh sách client và vai trò của agent được khai báo trong một file cấu hình và nạp vào realm bằng tính năng nhập một phần (partial import) của Keycloak (Phụ lục D). Nhờ nhập một phần, phần realm dành cho người dùng do thành viên khác xây dựng được giữ nguyên.
+
+\subsubsection{Vai trò theo năng lực và ma trận Agent -- Vai trò -- Công cụ}
+
+Vai trò của người dùng gắn với chức danh, còn vai trò của agent được chia theo năng lực trên từng hệ thống. Mỗi hệ thống có hai mức: \textit{viewer} chỉ đọc, và \textit{operator} hoặc \textit{editor} được thêm thao tác ghi. Chia nhỏ như vậy để cấp cho mỗi agent vừa đủ quyền nó cần, theo nguyên tắc đặc quyền tối thiểu. Lợi ích thấy rõ ở agent xử lý sự cố: agent này cần khởi động lại ứng dụng trên Kubernetes và đọc thông tin Spark, nên chỉ cần ghép hai vai trò có sẵn là \texttt{kube\_operator} và \texttt{spark\_viewer}. Nếu dùng vai trò theo chức danh, agent này sẽ phải nhận vai trò \texttt{data\_engineer} kèm nhiều quyền không cần thiết.
+
+Bảng~\ref{tab:agents} liệt kê mười agent. Hai agent đặc biệt có mục đích kiểm thử. Agent \texttt{no-access} không có vai trò nào, dùng để chứng minh cơ chế mặc định từ chối hoạt động đúng (kết quả mong đợi là 0 công cụ). Agent \texttt{platform-admin} có toàn quyền, dùng để chứng minh đủ 21 công cụ đều gọi được, và không được dùng cho công việc thường ngày. Ma trận này được lưu dưới dạng file JSON để bộ kiểm thử ở Chương 5 đọc trực tiếp làm kết quả mong đợi. Nhờ vậy, khi đổi quyền chỉ cần sửa ở một nơi.
+
+\begin{table}[H]\centering\caption{Ma trận Agent -- Vai trò -- số công cụ được phép}\label{tab:agents}
+{\singlespacing\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{|p{4.6cm}|X|c|}\hline
+\textbf{Agent} & \textbf{Vai trò} & \textbf{Số công cụ} \\ \hline
+cluster-observer & kube\_viewer & 3 \\ \hline
+incident-response & kube\_operator, spark\_viewer & 7 \\ \hline
+spark-diagnostic & spark\_viewer & 3 \\ \hline
+metadata-discovery & metadata\_viewer & 3 \\ \hline
+metadata-steward & metadata\_editor & 4 \\ \hline
+dbt-quality & dbt\_operator & 5 \\ \hline
+airflow-monitor & airflow\_viewer & 3 \\ \hline
+airflow-operator & airflow\_operator & 5 \\ \hline
+platform-admin & platform\_admin (khẩn cấp) & 21 \\ \hline
+no-access & (không có) & 0 \\ \hline
+\end{tabularx}}\end{table}
+
+\subsubsection{Quản lý bí mật}
+
+Mỗi agent có một secret riêng, để khi một agent bị lộ secret thì chỉ cần thu hồi agent đó mà không ảnh hưởng các agent khác. Secret được sinh ngẫu nhiên dài 256 bit và ghi thẳng vào Kubernetes Secret, không in ra màn hình và không lưu vào kho mã. Bước sinh secret có thể chạy lại an toàn: nếu secret đã có thì giữ nguyên. Bước này còn có một kiểm tra đáng chú ý: nếu chỉ một phần secret tồn tại, nó dừng lại thay vì sinh tiếp. Lý do là sinh lại một phần sẽ khiến Kubernetes giữ secret mới trong khi Keycloak vẫn giữ secret cũ, và agent sẽ không xin được token với một lỗi rất khó tìm nguyên nhân. Khi nạp client vào Keycloak, giá trị giữ chỗ trong file cấu hình được thay bằng secret đọc từ Kubernetes ngay lúc chạy, nên secret không bao giờ xuất hiện trong file.
+
+% =====================================================================
+\subsection{Tự động hóa triển khai}
+
+\subsubsection{Phân tách khởi tạo một lần và khởi động thường xuyên}
+
+Việc dựng môi trường được chia làm hai giai đoạn theo tần suất. Giai đoạn khởi tạo chỉ chạy một lần: tạo cụm Kubernetes cục bộ bằng kind, cài các thành phần nền của Gateway API và agentgateway, rồi đóng gói image mock. Giai đoạn khởi động chạy mỗi khi bắt đầu làm việc, kể cả sau khi khởi động lại máy, và do script up đảm nhiệm. Chia như vậy vì hai giai đoạn có chi phí rất khác nhau: lần khởi tạo đầu tiên tải về khoảng 4 GB, còn các lần khởi động sau chỉ cần áp lại cấu hình. Gộp chung thì lần nào cũng chậm; tách ra thì lệnh hằng ngày nhanh và ít lỗi hơn.
+
+\subsubsection{Luồng của script up}
+
+Script up được viết bằng PowerShell vì cả nhóm làm việc trên Windows (Phụ lục E). Luồng của script được thể hiện ở Hình~\ref{fig:up}. Việc đầu tiên script làm là kiểm tra điều kiện: các công cụ cần thiết đã được cài chưa, Docker có đang chạy không, kubectl có trỏ đúng cụm không, và các thành phần từ giai đoạn khởi tạo đã có chưa. Kiểm tra trước giúp người dùng biết ngay vấn đề ở đâu. Nếu không kiểm tra, script có thể chạy được nửa chừng rồi mới lỗi, để lại hệ thống ở trạng thái dở dang kèm thông báo lỗi khó hiểu.
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[node distance=5mm,every node/.style={font=\small}]
+\node[khoi,fill=gray!10] (s) {Bắt đầu};
+\node[quyetdinh,below=of s] (p) {Tiền điều kiện\\đạt?};
+\node[khoi,right=12mm of p,fill=red!8] (x) {Dừng, báo\\cách khắc phục};
+\node[khoi,below=of p,text width=8cm] (l) {1. Các lớp Kubernetes: gateway, mock, Keycloak + realm,\\AI Agent, xác thực, phân quyền, mạng, access log};
+\node[khoi,below=of l,text width=8cm] (r) {2--3. Backend thật: radar (Helm), OpenMetadata, Spark (Docker)};
+\node[khoi,below=of r,text width=8cm] (f) {4. Port-forward gateway, Keycloak; cài Grafana};
+\node[khoi,below=of f,text width=8cm] (o) {5. Nạp dữ liệu mẫu OpenMetadata};
+\node[quyetdinh,below=of o] (g) {Gateway nhận\\token trước hạn?};
+\node[khoi,below=of g,fill=green!8] (e) {In địa chỉ dịch vụ\\và thời gian chạy};
+\draw[mui] (s)--(p); \draw[mui] (p)--node[above,nhan]{không}(x);
+\draw[mui] (p)--node[left,nhan]{có}(l); \draw[mui] (l)--(r); \draw[mui] (r)--(f); \draw[mui] (f)--(o); \draw[mui] (o)--(g);
+\draw[mui] (g)--node[left,nhan]{có}(e); \draw[mui] (g.east)-|node[above,nhan,pos=0.25]{hết thời gian}(x.south);
+\end{tikzpicture}
+\caption{Lưu đồ của script khởi động hệ thống}\label{fig:up}\end{figure}
+
+Sau khi kiểm tra, script dựng hệ thống theo thứ tự phụ thuộc, và thứ tự này không thể đảo. Keycloak phải chạy xong mới tạo được realm. Realm phải có thì mới lấy được secret của gateway. Secret của gateway phải có thì quy tắc đổi token cho OpenMetadata mới hoạt động. Tiếp theo, script khởi động các backend thật, mở port-forward ở chế độ chạy nền và cài bộ giám sát.
+
+Bước cuối cùng là chờ cho đến khi gateway nhận một token thật và trả lời được lệnh khởi tạo MCP. Bước này được chọn làm điều kiện kết thúc vì nó kiểm tra cả chuỗi cùng lúc: chỉ thành công khi Keycloak cấp được token, gateway kiểm tra được token và cả năm backend đều phản hồi. Nói cách khác, khi script báo xong thì hệ thống thực sự dùng được, chứ không chỉ là các thành phần đã được tạo ra.
+
+\subsubsection{Tính idempotent và xử lý lỗi}
+
+Script được thiết kế để chạy lại bao nhiêu lần cũng cho cùng kết quả (tính idempotent). Tính chất này cần thiết vì trong thực tế script hay bị dừng giữa chừng, do mất mạng hoặc máy hết bộ nhớ, và cách khắc phục đơn giản nhất là chạy lại. Để làm được điều đó, mỗi bước xử lý trường hợp ``đã làm rồi'' theo cách riêng. Cấu hình Kubernetes được áp theo kiểu khai báo trạng thái mong muốn, nên áp lại không tạo bản sao. Realm chỉ được tạo khi chưa có, vì tạo lại realm sẽ sinh khóa mới và làm mọi token đang dùng mất hiệu lực. Port-forward chỉ được mở khi cổng còn trống, tránh lỗi trùng cổng.
+
+Về xử lý lỗi, mọi bước chờ đều có giới hạn thời gian. Khi một thành phần không lên, script dừng và báo rõ thành phần nào quá hạn thay vì treo mãi. Script còn xử lý một đặc điểm của PowerShell: khi một chương trình bên ngoài như kubectl hay helm báo lỗi, PowerShell vẫn chạy tiếp lệnh sau. Nếu không xử lý, script có thể báo thành công trong khi một bước đã thất bại. Vì vậy mọi lệnh bên ngoài đều được bọc trong một hàm kiểm tra mã lỗi và dừng ngay khi có lỗi. Ngược với script up, script down chỉ làm một việc là xóa toàn bộ cụm, đưa máy về trạng thái sạch.
+
+% =====================================================================
+\subsection{Giám sát allow/deny}\label{sec:obs}
+
+\subsubsection{Bổ sung ngữ cảnh vào access log}
+
+Access log mặc định của agentgateway chỉ ghi phương thức, đường dẫn và mã trạng thái. Từ log này có thể biết có bao nhiêu yêu cầu bị chặn, nhưng không biết ai bị chặn và bị chặn khi gọi công cụ nào, tức là không trả lời được câu hỏi kiểm toán. Vì vậy một quy tắc access log được thêm vào Gateway để ghi thêm năm thông tin: tên người dùng, mã agent, danh sách vai trò, target và tên công cụ (Phụ lục F).
+
+Các thông tin này được lấy từ token sau khi token đã được kiểm tra, nên chúng đáng tin cậy. Nếu lấy từ header do client gửi, kẻ tấn công có thể ghi tên người khác vào log để đổ trách nhiệm. Yêu cầu không có token được ghi là \texttt{anonymous}, để các lần dò thử không có token vẫn để lại dấu vết. Token và các thông tin nhạy cảm không được ghi.
+
+\subsubsection{Đường ống dữ liệu quan sát}
+
+Hình~\ref{fig:obs} mô tả đường đi của log từ gateway tới dashboard. Alloy thu log từ các pod của gateway và gửi về Loki. Loki lưu log và đánh nhãn để tìm kiếm nhanh. Grafana được cấu hình sẵn để đọc từ Loki và tự nạp dashboard khi khởi động. Bộ ba này được chọn vì hai lý do. Thứ nhất, chúng đủ nhẹ để chạy trên máy cá nhân, trong khi các giải pháp như Elasticsearch cần nhiều bộ nhớ hơn. Thứ hai, chúng không đòi hỏi sửa gateway mà chỉ đọc log gateway vốn đã ghi ra. Do đó phần giám sát có thể thêm vào hoặc gỡ ra mà không ảnh hưởng đến luồng xử lý chính.
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[node distance=9mm]
+\node[khoi] (gw) {agentgateway\\stdout};
+\node[khoi,right=of gw] (al) {Alloy\\thu log pod gateway};
+\node[khoi,right=of al] (lk) {Loki\\lưu, đánh nhãn};
+\node[khoi,right=of lk] (gr) {Grafana\\dashboard};
+\node[khoi,below=8mm of al,fill=gray!8,text width=3.4cm] (pol) {Chính sách access log:\\user, agent\_id, roles,\\target, tool};
+\node[khoi,below=8mm of gr,fill=gray!8,text width=3.6cm] (q) {LogQL: 200 → allow\\400 + Unknown tool → deny};
+\draw[mui] (gw)--(al); \draw[mui] (al)--(lk); \draw[mui] (lk)--(gr);
+\draw[mui,dashed] (pol.west) -| (gw.south); \draw[mui,dashed] (q)--(gr);
+\end{tikzpicture}
+\caption{Đường ống dữ liệu quan sát allow/deny}\label{fig:obs}\end{figure}
+
+\subsubsection{Quy tắc phân loại và thiết kế dashboard}
+
+Như đã thấy ở Hình~\ref{fig:decision}, gateway không có mã lỗi riêng cho trường hợp ``không có quyền'', nên dashboard phải tự phân loại dựa trên những gì log ghi lại. Quy tắc được dùng là: một lệnh gọi công cụ trả về HTTP 200 được tính là cho phép, còn trả về HTTP 400 kèm thông báo \texttt{Unknown tool} được tính là bị chặn. Quy tắc này có hai giới hạn cần biết. Thứ nhất, nó không phân biệt được ``bị chặn vì thiếu quyền'' với ``gõ sai tên công cụ'', vì gateway trả về cùng một lỗi. Trong thực tế, agent lấy tên công cụ từ danh mục chứ không tự gõ, nên trường hợp gõ sai hiếm khi xảy ra. Thứ hai, quy tắc dựa trên thông báo lỗi của agentgateway phiên bản 1.5.0, nên cần kiểm tra lại khi nâng cấp.
+
+Dashboard có tám ô, sắp xếp từ tổng quan xuống chi tiết theo đúng trình tự người vận hành điều tra một sự việc. Hai ô số liệu trên cùng cho biết tổng số lệnh được phép và bị chặn, giúp phát hiện ngay khi có bất thường. Bốn biểu đồ theo thời gian chia số liệu theo thời gian, theo người dùng, theo vai trò và theo công cụ, giúp khoanh vùng: ai đang bị chặn nhiều, vai trò nào có thể đang thiếu quyền, công cụ nào đang bị thử gọi trái phép. Hai ô log dưới cùng hiển thị từng lệnh gọi cụ thể, trong đó một ô chỉ chứa các lệnh bị chặn để tra cứu khi điều tra. Với cách bố trí này, người vận hành trả lời được câu hỏi ``ai đã gọi gì và có bị chặn không'' chỉ bằng vài thao tác lọc (O2, S5).
+
+\hinh{Dashboard giám sát allow/deny trên Grafana}{fig:dashboard}
