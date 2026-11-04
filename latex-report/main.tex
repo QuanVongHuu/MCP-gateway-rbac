@@ -1,0 +1,96 @@
+% !TEX program = xelatex
+% Báo cáo kiến tập - Khoa Hệ thống thông tin, UEL
+% Biên dịch: xelatex main.tex (chạy 2 lần để cập nhật mục lục)
+\documentclass[13pt,a4paper]{extarticle}
+
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\usepackage[left=3cm,right=2cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{setspace,indentfirst,graphicx,float,xcolor,tikz}
+\usepackage{array,tabularx,longtable,multirow,enumitem}
+\usepackage{titlesec}
+\usepackage[font=it,labelsep=colon,justification=centering]{caption}
+\usepackage[hidelinks,unicode]{hyperref}
+
+% ---------- Thông tin báo cáo (sửa tại đây) ----------
+\newcommand{\tenkhoa}{KHOA HỆ THỐNG THÔNG TIN}
+\newcommand{\tennganh}{HỆ THỐNG THÔNG TIN QUẢN LÝ}
+\newcommand{\tenchuyennganh}{KINH DOANH SỐ VÀ TRÍ TUỆ NHÂN TẠO}
+\newcommand{\tendetai}{XÂY DỰNG PIPELINE ĐỒNG BỘ DỮ LIỆU GẦN THỜI GIAN THỰC - TÍCH HỢP KIỂM SOÁT CHẤT LƯỢNG DỮ LIỆU VÀ GIÁM SÁT VẬN HÀNH}
+\newcommand{\gvhd}{[Học hàm, học vị, họ tên GVHD]}
+\newcommand{\svth}{[Họ tên sinh viên]}
+\newcommand{\mssv}{[MSSV]}
+\newcommand{\lop}{[Lớp]}
+\newcommand{\thoigian}{TP.HCM, THÁNG ../....}
+\newcommand{\coquan}{[Tên cơ quan kiến tập]}
+\newcommand{\mentor}{[Họ tên người hướng dẫn tại cơ quan]}
+
+% ---------- Trình bày chung ----------
+\onehalfspacing
+\setlength{\parindent}{1.27cm}
+\setlength{\parskip}{6pt}
+\graphicspath{{images/}}
+\renewcommand{\contentsname}{MỤC LỤC}
+\renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}
+\renewcommand{\listtablename}{DANH MỤC BẢNG}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\counterwithin{figure}{section}
+\counterwithin{table}{section}
+\captionsetup[table]{position=top}
+
+% ---------- Đề mục ----------
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{4}
+\titleformat{\section}{\centering\bfseries}{}{0pt}{}
+\titleformat{\subsection}{\bfseries}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\bfseries}{\thesubsubsection}{0.5em}{}
+\titleformat{\paragraph}[hang]{\itshape}{\theparagraph}{0.5em}{}
+\titlespacing*{\section}{0pt}{0pt}{12pt}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+\titlespacing*{\subsubsection}{0pt}{12pt}{6pt}
+\titlespacing*{\paragraph}{0pt}{6pt}{6pt}
+
+% \heading{...}: đề mục lớn không đánh số (LỜI CẢM ƠN, A., B., C., ...)
+\newcommand{\heading}[1]{\clearpage\section*{#1}\addcontentsline{toc}{section}{#1}}
+% \phan{...}: "PHẦN n: ..." trong mục B; \phan[]{...} để không sang trang mới
+\newcommand{\phan}[2][\clearpage]{#1\refstepcounter{section}%
+  \section*{PHẦN \thesection: #2}\addcontentsline{toc}{phan}{PHẦN \thesection: #2}}
+% Tiểu mục không đánh số, không vào mục lục
+\newcommand{\tieumuc}[1]{\par\textbf{#1}\par}
+\newcommand{\tieumucnghieng}[1]{\par\textit{#1}\par}
+
+% ---------- Mục lục ----------
+\makeatletter
+\renewcommand*\l@section[2]{\addvspace{4pt}\@dottedtocline{1}{0em}{0em}{\bfseries #1}{\bfseries #2}}
+\newcommand*\l@phan[2]{\@dottedtocline{1}{0.5cm}{0em}{\bfseries #1}{\bfseries #2}}
+\renewcommand*\l@subsection[2]{\@dottedtocline{2}{1cm}{2em}{\bfseries #1}{\bfseries #2}}
+\renewcommand*\l@subsubsection{\@dottedtocline{3}{1.5cm}{2.6em}}
+\renewcommand*\l@paragraph{\@dottedtocline{4}{3cm}{3.4em}}
+\newcommand*\toclevel@phan{1}
+\makeatother
+
+% ---------- Tiện ích giữ chỗ (xoá khi viết nội dung thật) ----------
+\newcommand{\todo}[1]{\par{\color{gray}\textit{[#1]}}\par}
+\newcommand{\nguon}[1]{\par\textit{Nguồn: #1}\par}
+% \hinh{chú thích}{nhãn}: thay \fbox bằng \includegraphics
+\newcommand{\hinh}[2]{\begin{figure}[H]\centering
+  \fbox{\parbox[c][3.5cm][c]{0.7\textwidth}{\centering\color{gray}\textit{[Chèn hình]}}}
+  \caption{#1}\label{#2}\end{figure}}
+% \bang{chú thích}{nhãn}{số cột}{hàng tiêu đề}
+\newcommand{\bang}[4]{\begin{table}[H]\centering\caption{#1}\label{#2}
+  \begin{tabularx}{\textwidth}{|*{#3}{>{\centering\arraybackslash}X|}}\hline
+  #4 \\ \hline
+  \multicolumn{#3}{|c|}{\color{gray}\textit{[Nội dung bảng]}} \\ \hline
+  \end{tabularx}\end{table}}
+\newcommand{\dongcham}[1]{\par\noindent\foreach \i in {1,...,#1}{\makebox[\textwidth]{\dotfill}\\}\par\bigskip}
+
+\begin{document}
+
+\input{frontmatter}
+\input{part-a}
+\input{part-b}
+\input{part-c}
+\input{backmatter}
+
+\end{document}
