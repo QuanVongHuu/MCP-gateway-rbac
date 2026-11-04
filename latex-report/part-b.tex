@@ -1,0 +1,177 @@
+\heading{B. GIẢI QUYẾT BÀI TOÁN DOANH NGHIỆP}
+
+% =====================================================================
+\phan[]{GIỚI THIỆU VẤN ĐỀ}
+
+\subsection{Đặt vấn đề}
+\todo{Bối cảnh; hiện trạng; rủi ro của cách làm hiện tại; vấn đề trọng tâm; giải pháp đề xuất.}
+
+\subsection{Mục tiêu của đề tài}
+\tieumuc{Đối với Doanh nghiệp}
+\todo{Mục tiêu cốt lõi và lợi ích mang lại cho doanh nghiệp.}
+\tieumuc{Đối với nhóm kiến tập}
+\todo{Kiến thức, kỹ năng nhóm hướng đến.}
+
+\subsection{Đối tượng và phạm vi của đề tài}
+\tieumuc{Đối tượng}
+\todo{Các nhóm đối tượng mà đề tài hướng đến.}
+\tieumuc{Phạm vi}
+\todo{Phạm vi kỹ thuật, phạm vi dữ liệu, phạm vi thời gian.}
+
+% =====================================================================
+\phan{CƠ SỞ LÝ THUYẾT}
+
+\subsection{Tổng quan về Data Replication}
+\subsubsection{Khái niệm và vai trò trong doanh nghiệp}
+\hinh{Kiến trúc Data Replication trong hệ thống phân tán (Nguồn: Geeksforgeeks)}{fig:replication}
+\subsubsection{Phân loại các phương pháp Replication}
+\paragraph{Phân loại hình thức Data Replication}
+\todo{Transactional, Snapshot, Merge Replication.}
+\paragraph{Các lược đồ Data Replication}
+\todo{Full, Partial, No Replication.}
+\hinh{Kiến trúc Database Replication (Nguồn: Guideofgreece)}{fig:db-replication}
+\paragraph{Các kỹ thuật Data Replication}
+\todo{Full-table, Key-based Incremental, Log-based Replication.}
+
+\subsection{Change Data Capture (CDC)}
+\subsubsection{Khái niệm và vai trò}
+\hinh{Luồng trích xuất và đồng bộ dữ liệu thời gian thực bằng cơ chế CDC. (Nguồn: Algomaster, 2026)}{fig:cdc}
+\subsubsection{Các phương pháp CDC}
+\todo{Query-Based, Trigger-Based, Log-Based.}
+\subsubsection{CDC dựa trên Write-Ahead Log (WAL)}
+
+\subsection{Event-driven Architecture}
+\subsubsection{Khái niệm và đặc điểm}
+\hinh{Sự tách biệt giữa Producers và Consumers trong mô hình Pub/Sub.}{fig:producer-consumer}
+\subsubsection{Message Queue và Pub/Sub}
+\hinh{Kiến trúc mô hình Pub/Sub (Nguồn: ByteByteGo)}{fig:pubsub}
+\subsubsection{Các đảm bảo truyền tải sự kiện}
+\todo{At-least-once, Exactly-once.}
+
+\subsection{Quản lý Schema}
+\subsubsection{Định dạng dữ liệu Avro}
+\subsubsection{Schema Registry và quản lý thay đổi Schema}
+\todo{Backward, Forward, Full Compatibility.}
+\hinh{Vai trò của Schema Registry trong việc quản lý và kiểm duyệt cấu trúc dữ liệu. (Nguồn: Apache Kafka)}{fig:schema-registry}
+
+\subsection{Data Lake và hạ tầng lưu trữ dữ liệu}
+\subsubsection{Khái niệm Data Lake}
+\hinh{So sánh kiến trúc lưu trữ giữa Data Lake và Data Warehouse truyền thống. (Nguồn: g2)}{fig:lake-vs-warehouse}
+\subsubsection{Công nghệ lưu trữ đối tượng và giao thức S3}
+\subsubsection{Định dạng lưu trữ cột Parquet và Partitioning}
+\subsubsection{Quản lý Metadata với Hive Metastore}
+
+\subsection{Xử lý dữ liệu phân tán}
+\subsubsection{Mô hình xử lý Batch vs Streaming}
+\subsubsection{Deduplication và Upsert trong pipeline CDC}
+
+\subsection{Chất lượng và vận hành Data Pipeline}
+\todo{Kiểm soát chất lượng, giám sát, Dead Letter Queue, phân loại và ứng phó sự cố (NIST SP 800-61).}
+
+% =====================================================================
+\phan{PHÂN TÍCH VÀ XÂY DỰNG GIẢI PHÁP}
+
+\subsection{Đánh giá tình hình doanh nghiệp}
+\subsubsection{Hiện trạng hệ thống dữ liệu}
+\bang{Các bảng nghiệp vụ trong hệ thống nguồn PostgreSQL (mô phỏng môi trường ShopBack)}{tab:source-tables}{4}
+  {\textbf{Tên bảng} & \textbf{Nội dung nghiệp vụ} & \textbf{Khóa chính} & \textbf{Đặc điểm}}
+\subsubsection{Thách thức trong vận hành}
+\tieumucnghieng{a) Không có thời gian ngừng dịch vụ (Zero Downtime Requirement)}
+\tieumucnghieng{b) Rủi ro khi debug trực tiếp trên môi trường production}
+\tieumucnghieng{c) Thiếu môi trường phân tích an toàn, sát production}
+\subsubsection{Yêu cầu đặt ra cho giải pháp}
+\bang{Tổng hợp yêu cầu đặt ra cho hệ thống replication pipeline}{tab:requirements}{5}
+  {\textbf{STT} & \textbf{Yêu cầu} & \textbf{Mô tả chi tiết} & \textbf{Thách thức} & \textbf{Cơ sở}}
+
+\subsection{Các giải pháp trên thị trường}
+\subsubsection{Các giải pháp thương mại}
+\bang{Tổng hợp các giải pháp thương mại tiêu biểu được xem xét}{tab:commercial}{4}
+  {\textbf{Giải pháp} & \textbf{Nhà cung cấp} & \textbf{Điểm mạnh} & \textbf{Điểm yếu / Rủi ro}}
+\subsubsection{Các giải pháp mã nguồn mở}
+\bang{Stack công nghệ mã nguồn mở xem xét và phương án thay thế}{tab:opensource}{3}
+  {\textbf{Thành phần} & \textbf{Phương án thay thế} & \textbf{Lý do lựa chọn}}
+\subsubsection{So sánh và lựa chọn}
+\bang{Ma trận so sánh giải pháp thương mại và mã nguồn mở}{tab:comparison}{4}
+  {\textbf{Tiêu chí đánh giá} & \textbf{Giải pháp thương mại} & \textbf{Giải pháp mã nguồn mở} & \textbf{Ưu thế}}
+
+\subsection{Đề xuất mô hình}
+\subsubsection{Kiến trúc tổng thể}
+\hinh{Luồng dữ liệu của mô hình Lambda Architecture}{fig:lambda}
+\subsubsection{Đặc tính cốt lõi}
+\tieumucnghieng{a) Cô lập triệt để môi trường Development}
+\tieumucnghieng{b) Replication không xâm lấn qua cơ chế Log-Based CDC}
+\tieumucnghieng{c) Bảo toàn tính toàn vẹn dữ liệu qua hai lớp lưu trữ}
+\tieumucnghieng{d) Phát hiện chất lượng dữ liệu chủ động}
+\tieumucnghieng{e) Tính di động và không phụ thuộc nhà cung cấp}
+
+% =====================================================================
+\phan{THỰC NGHIỆM}
+
+\subsection{Môi trường thực nghiệm}
+\subsubsection{Hạ tầng triển khai}
+\hinh{Sơ đồ kiến trúc tổng thể hệ thống}{fig:architecture}
+\todo{Giai đoạn 1 - Thu thập thay đổi; Giai đoạn 2 - Truyền tải sự kiện; Giai đoạn 3 - Xử lý và lưu trữ; Giai đoạn 4 - Truy vấn; tầng giám sát.}
+\bang{Tổng hợp các thành phần chính được sử dụng trong thực nghiệm}{tab:components}{2}
+  {\textbf{Thành phần} & \textbf{Vai trò}}
+\subsubsection{Dữ liệu thực nghiệm}
+\bang{Các bảng dữ liệu được sử dụng}{tab:datasets}{4}
+  {\textbf{Tên bảng} & \textbf{Tên cột} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả}}
+
+\subsection{Xây dựng pipeline CDC}
+\subsubsection{Luồng thu thập thay đổi}
+\bang{Các topic có trên Kafka}{tab:topics}{2}
+  {\textbf{Kafka Topic} & \textbf{Bảng nguồn}}
+\subsubsection{Luồng truyền tải sự kiện}
+\hinh{Giao diện AKHQ hiển thị danh sách schema đã đăng ký cho ba topic}{fig:akhq}
+\hinh{Giao diện MinIO hiển thị cấu trúc thư mục chứa file Avro thô}{fig:minio-avro}
+\subsubsection{Luồng xử lý và lưu trữ}
+\hinh{Giao diện MinIO hiển thị cấu trúc thư mục Parquet sau khi Spark xử lý xong}{fig:minio-parquet}
+\subsubsection{Luồng truy vấn dữ liệu}
+\hinh{Giao diện Trino UI hiển thị kết quả truy vấn trên bảng orders đã được đồng bộ}{fig:trino}
+
+\subsection{Xây dựng hệ thống giám sát chất lượng}
+\subsubsection{Kiểm tra chất lượng dữ liệu}
+\bang{Năm loại kiểm tra được thực hiện tuần tự cho mỗi bảng}{tab:dq-checks}{4}
+  {\textbf{TT} & \textbf{Tên kiểm tra} & \textbf{Nội dung} & \textbf{Mức độ nghiêm trọng}}
+\subsubsection{Cơ chế cảnh báo}
+\tieumucnghieng{Kiến trúc hai luồng cảnh báo}
+\tieumucnghieng{Cấu hình kỹ thuật}
+\hinh{Panel Data Freshness Gap và S3 Sink Consumer Lag theo Topic}{fig:panel-freshness}
+\hinh{Panel Spark Processing hiển thị số hàng được ghi và thời gian xử lý theo từng bảng}{fig:panel-spark}
+\hinh{Panel Debezium Records/min, Row Pass-Through Ratio và WAL Lag}{fig:panel-debezium}
+\bang{Cấu trúc tin nhắn cảnh báo gửi về PagerDuty}{tab:alert-payload}{2}
+  {\textbf{Trường} & \textbf{Nội dung}}
+\hinh{Ví dụ một incident trên PagerDuty được kích hoạt bởi DQ check thất bại}{fig:pagerduty}
+\tieumucnghieng{Phân loại sự cố}
+\bang{Cấu hình alert rule trong Grafana}{tab:alert-rules}{4}
+  {\textbf{Tín hiệu} & \textbf{Metric nguồn} & \textbf{Ngưỡng kích hoạt} & \textbf{Dấu hiệu nhận biết}}
+\bang{Định nghĩa các quy tắc kiểm tra dữ liệu}{tab:dq-rules}{4}
+  {\textbf{Quy tắc Deequ} & \textbf{Đối tượng kiểm tra} & \textbf{Điều kiện vi phạm} & \textbf{Nguyên nhân thường gặp}}
+\bang{Phân loại sự cố và mức độ nghiêm trọng}{tab:severity}{6}
+  {\textbf{Mức độ} & \textbf{PagerDuty Severity} & \textbf{Tiêu chí phân loại} & \textbf{TTA} & \textbf{TTR} & \textbf{Giao thức PagerDuty}}
+\subsubsection{Quy trình ứng phó sự cố}
+\tieumuc{Giai đoạn 1: Chuẩn bị}
+\tieumuc{Giai đoạn 2: Phát hiện và phân tích}
+\tieumuc{Giai đoạn 3: Ngăn chặn và khôi phục}
+\tieumuc{Giai đoạn 4: Hoạt động hậu sự cố}
+\tieumuc{Kiểm thử thực nghiệm hệ thống cảnh báo}
+\tieumuc{Kịch bản 1: Spark ngừng hoạt động (Infrastructure - SEV-1)}
+\tieumuc{Kịch bản 2: Null PK trên toàn bộ bảng fact (giả lập) (Data Quality - SEV-1)}
+\hinh{Kết quả thực nghiệm kiểm tra hệ thống cảnh báo}{fig:alert-test}
+\tieumucnghieng{Các kịch bản thiết kế bổ sung}
+
+\subsection{Đánh giá kết quả thực nghiệm}
+\bang{Tổng hợp kết quả thực nghiệm theo sáu yêu cầu đặt ra ở Bảng \ref{tab:requirements}}{tab:results}{3}
+  {\textbf{Yêu cầu} & \textbf{Chỉ số đo được} & \textbf{Kết quả}}
+
+% =====================================================================
+\phan{KẾT LUẬN}
+
+\subsection{Kết luận}
+\todo{Tóm tắt kết quả đạt được so với các tiêu chí đề ra.}
+
+\subsection{Hạn chế}
+\todo{Các hạn chế còn tồn tại.}
+
+\subsection{Hướng phát triển trong tương lai}
+\todo{Các hướng phát triển tiếp theo, tương ứng với từng hạn chế.}
