@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && { pwd -W 2>/dev/null || pwd; })  # pwd -W: Windows path for kubectl.exe under Git Bash
 kubectl_bin=${KUBECTL_BIN:-kubectl}
 
 command -v "$kubectl_bin" >/dev/null
@@ -28,6 +28,7 @@ if [[ "$bootstrap_exists" == true || "$agents_exist" == true ]]; then
 fi
 
 secret_dir=$(mktemp -d)
+kube_secret_dir=$(cygpath -m "$secret_dir" 2>/dev/null || echo "$secret_dir")  # Windows path for kubectl.exe under Git Bash
 cleanup() {
   find "$secret_dir" -type f -exec shred -u {} + 2>/dev/null || true
   rmdir "$secret_dir" 2>/dev/null || true
@@ -56,13 +57,13 @@ for client_id in "${agent_clients[@]}"; do
 done
 
 "$kubectl_bin" -n keycloak create secret generic keycloak-bootstrap \
-  --from-file=username="$secret_dir/username" \
-  --from-file=password="$secret_dir/password" \
+  --from-file=username="$kube_secret_dir/username" \
+  --from-file=password="$kube_secret_dir/password" \
   --dry-run=client -o yaml | "$kubectl_bin" apply -f -
 
 agent_secret_args=()
 for client_id in "${agent_clients[@]}"; do
-  agent_secret_args+=("--from-file=$client_id=$secret_dir/$client_id")
+  agent_secret_args+=("--from-file=$client_id=$kube_secret_dir/$client_id")
 done
 "$kubectl_bin" -n keycloak create secret generic agent-client-secrets \
   "${agent_secret_args[@]}" --dry-run=client -o yaml | "$kubectl_bin" apply -f -

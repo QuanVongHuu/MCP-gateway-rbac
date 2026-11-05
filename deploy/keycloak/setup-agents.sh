@@ -15,7 +15,7 @@ kc() { kubectl exec -n keycloak deploy/keycloak -- /opt/keycloak/bin/kcadm.sh "$
 json=$(sed -n '/mcp-realm.json: |/,$p' deploy/keycloak/realm-config.yaml | tail -n +2 | sed 's/^    //')
 
 # replace each ${..._SECRET} placeholder with the real secret
-for cid in $(jq -r '.clients[] | select(.secret) | .clientId' <<<"$json"); do
+for cid in $(jq -r '.clients[] | select(.secret) | .clientId' <<<"$json" | tr -d '\r'); do
   sec=$(kubectl -n keycloak get secret agent-client-secrets -o "jsonpath={.data.$cid}" | base64 -d)
   [ -n "$sec" ] || { echo "setup-agents: no secret for $cid (run scripts/bootstrap-agent-secrets.sh)" >&2; exit 1; }
   json=$(jq --arg c "$cid" --arg s "$sec" '(.clients[] | select(.clientId == $c)).secret = $s' <<<"$json")
@@ -30,10 +30,13 @@ jq '{ifResourceExists: "OVERWRITE",
   | kubectl exec -i -n keycloak deploy/keycloak -- /opt/keycloak/bin/kcadm.sh create partialImport -r $REALM -f - >/dev/null
 
 # overwriting a client recreates its service-account user, so grant the roles every time
-jq -r '.users[] | [.serviceAccountClientId] + (.clientRoles["mcp-gateway"] // []) | join(" ")' <<<"$json" |
+jq -r '.users[] | [.serviceAccountClientId] + (.clientRoles["mcp-gateway"] // []) | join(" ")' <<<"$json" | tr -d '\r' |
 while read -r cid roles; do
+  # the username search can miss a just-recreated service-account user, so resolve it through the client
+  client_uuid=$(kc get clients -r $REALM -q clientId="$cid" --fields id --format csv --noquotes | tr -d '\r')
+  user_id=$(kc get clients/"$client_uuid"/service-account-user -r $REALM --fields id --format csv --noquotes | tr -d '\r')
   for role in $roles; do
-    kc add-roles -r $REALM --uusername "service-account-$cid" --cclientid mcp-gateway --rolename "$role"
+    kc add-roles -r $REALM --uid "$user_id" --cclientid mcp-gateway --rolename "$role"
   done
 done
 echo "agents: $(jq '[.clients[] | select(.secret)] | length' <<<"$json") service-account clients in realm $REALM"
