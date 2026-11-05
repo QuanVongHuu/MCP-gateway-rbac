@@ -8,7 +8,11 @@
     {BÁO CÁO KIẾN TẬP\\[4pt] NGÀNH \tennganh\\[4pt] (CHUYÊN NGÀNH \tenchuyennganh)};
   \node[font=\bfseries,align=center,text width=16.5cm] at ([yshift=-164mm]current page.north) {\tendetai};
   \node[anchor=north west,align=left] at ([xshift=90mm,yshift=-194mm]current page.north west)
-    {\textbf{GVHD:} \gvhd\\[4pt] \textbf{SVTH:} \svth\\[4pt] \textbf{MSSV:} \mssv};
+    {\begin{tabular}{@{}l@{\ }l@{\quad}l@{}}
+     \textbf{GVHD:} & \multicolumn{2}{l}{\gvhd}\\[4pt]
+     \textbf{SVTH:} & \svthA & \textbf{MSSV:} \mssvA\\[4pt]
+                    & \svthB & \textbf{MSSV:} \mssvB
+     \end{tabular}};
   \node[font=\bfseries,text=white] at ([yshift=-271mm]current page.north) {\thoigian};
 \end{tikzpicture}
 \end{titlepage}
@@ -20,7 +24,21 @@
 
 % ================= LỜI CẢM ƠN =================
 \heading{LỜI CẢM ƠN}
-\todo{Cảm ơn giảng viên hướng dẫn, Mentor tại cơ quan kiến tập; mong nhận góp ý.}
+Nhóm xin cảm ơn Khoa Hệ thống thông tin, Trường Đại học Kinh tế -- Luật đã tổ chức học phần kiến tập để sinh viên được làm việc tại doanh nghiệp ngay trong quá trình học. Qua đợt kiến tập, nhóm được giải một bài toán bảo mật cụ thể, trong đó mỗi quy tắc cấu hình đều phải trả lời được câu hỏi: nếu viết sai thì agent nào sẽ nhận quyền mà nó không nên có.
+
+Nhóm cảm ơn \gvhd{}, giảng viên hướng dẫn, đã nhận hướng dẫn nhóm và dành thời gian đọc, góp ý cho đề tài cũng như bản báo cáo này.
+
+Nhóm cảm ơn \coquan{} đã nhận nhóm kiến tập, và cảm ơn người hướng dẫn tại đơn vị, \mentor, đã định hướng và hỗ trợ nhóm trong suốt thời gian kiến tập. Đề tài xuất phát từ nhu cầu của nhóm dữ liệu: cho AI Agent dùng công cụ trên Kubernetes, Spark, OpenMetadata, dbt và Airflow mà vẫn biết rõ agent nào được làm gì và đã làm gì.
+
+Sản phẩm trong báo cáo mới là bản chứng minh khái niệm chạy trên một cụm Kubernetes cục bộ. Phân quyền theo tài nguyên và trường hợp agent hành động thay mặt người dùng vẫn dừng ở mức thiết kế, còn hiểu biết của nhóm về vận hành hệ thống thật chắc chắn còn nhiều chỗ chưa tới. Nhóm mong nhận được góp ý của giảng viên hướng dẫn và đơn vị để tiếp tục hoàn thiện đề tài.
+
+\vspace{12pt}
+\hfill\begin{minipage}{8cm}\centering
+TP. Hồ Chí Minh, ngày ..... tháng ..... năm .......\\
+\textbf{Nhóm sinh viên thực hiện}\\[4pt]
+\svthA\\
+\svthB
+\end{minipage}
 
 % ================= LỜI CAM KẾT =================
 \heading{LỜI CAM KẾT}
@@ -135,18 +153,17 @@ GVHD: \gvhd
 
 % ================= LỊCH LÀM VIỆC =================
 \heading{LỊCH LÀM VIỆC VÀ NỘI DUNG CÔNG VIỆC}
-{\singlespacing\renewcommand{\arraystretch}{1.4}\noindent
-\begin{tabularx}{\textwidth}{|c|p{2.6cm}|X|p{3.6cm}|}\hline
+{\singlespacing\small\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{|c|>{\raggedright\arraybackslash}p{2.2cm}|>{\raggedright\arraybackslash}p{7.6cm}|>{\raggedright\arraybackslash}p{3.6cm}|}\hline
 \textbf{Tuần} & \textbf{Thời gian} & \textbf{Nội dung công việc} & \textbf{Sản phẩm / minh chứng} \\ \hline
-1 & ../../ -- ../../ & Tìm hiểu MCP, agentgateway, Kubernetes/kind & Môi trường kind \\ \hline
-2 & ../../ -- ../../ & Xây dựng mock MCP server (FastMCP, mockkit) & \texttt{servers/} \\ \hline
-3 & ../../ -- ../../ & Chuẩn hóa danh mục 21 tool và ma trận quyền & \texttt{agent-tool-access.json} \\ \hline
-4 & ../../ -- ../../ & Thiết lập AI Agent trên Keycloak & \texttt{setup-agents.sh} \\ \hline
-5 & ../../ -- ../../ & Observability: access log, Loki, Grafana & Dashboard allow/deny \\ \hline
-6 & ../../ -- ../../ & Tự động hóa \texttt{ops/up.ps1}, \texttt{ops/down.ps1} & Log chạy script \\ \hline
-7 & ../../ -- ../../ & Kiểm chứng, thu thập bằng chứng, viết báo cáo & \texttt{evidence/}, báo cáo \\ \hline
-\end{tabularx}}
-\todo{Điều chỉnh theo thời gian và công việc thực tế (đối chiếu git log).}
+\endhead
+1 & 12/09 -- 18/09 & Khởi tạo kho mã. Tìm hiểu đặc tả MCP, so sánh các phương án MCP gateway (IBM ContextForge, agentgateway, Azure API Management) và viết bản hướng dẫn triển khai đầu tiên. & Commit \texttt{932f919}: báo cáo nghiên cứu trong \path{local-docs/} \\ \hline
+2--3 & 19/09 -- 02/10 & Dựng khung thư mục theo phương án ban đầu dùng ContextForge, gồm chỗ cho các mock server theo nhóm nghiệp vụ và bảng ánh xạ nhóm -- công cụ ở dạng nháp. Tìm hiểu agentgateway, Gateway API và chạy thử trên kind. & Commit \texttt{7e7dcb7} \\ \hline
+4 & 03/10 -- 09/10 & Chuyển sang agentgateway và bỏ khung ContextForge. Dựng Gateway, HTTPRoute và backend hợp nhất năm target; viết năm mock MCP server và kiểm thử gọi đủ 21 công cụ qua gateway. Rà soát access log, metric, trace và lệnh gọi bị từ chối. Triển khai Keycloak, xác thực JWT và bản đầu của chính sách phân quyền theo công cụ. & \path{deploy/agentgateway/}, \path{servers/}, \path{evidence/gateway-smoke.txt}, \path{rbac/tool-access.yaml} \\ \hline
+5 & 10/10 -- 16/10 & Thay mock bằng phần mềm thật cho radar, OpenMetadata và Spark History mà giữ nguyên tên target; thêm NetworkPolicy, token exchange cho OpenMetadata và kiểm thử bằng curl, MCP Inspector. Viết \texttt{run.sh}, \texttt{bootstrap.sh}, \texttt{QUICKSTART.md}, script xóa cụm \texttt{ops/down.ps1} và dashboard Grafana allow/deny. Dựng khung báo cáo LaTeX đầu tiên. & \path{deploy/real-servers/}, \path{deploy/network/}, \path{ops/down.ps1}, \path{observability/grafana/} \\ \hline
+6--7 & 17/10 -- 30/10 & Chuyển trọng tâm sang danh tính AI Agent: mỗi agent là một client Keycloak riêng, nhận vai trò năng lực qua claim \texttt{roles}. Cập nhật xác thực JWT, phân quyền và access log theo agent; viết ma trận Agent -- Vai trò -- Công cụ dạng JSON, kiểm thử \texttt{agent\_rbac\_smoke.py} và kiểm thử tĩnh đối chiếu cấu hình. & \path{deploy/keycloak/realm-config.yaml}, \path{tests/expected/agent-tool-access.json}, \path{evidence/agent-rbac-smoke.txt} \\ \hline
+8 & 31/10 -- 05/11 & Hợp nhất nhánh \texttt{dev}: gộp persona người dùng với vai trò AI Agent, thêm \texttt{ops/up.ps1} và script nạp agent vào realm. Vẽ sơ đồ kiến trúc, chụp dashboard allow/deny và đo thời gian khởi động. Viết các chương báo cáo và đối chiếu nội dung với kho mã. & \path{ops/up.ps1}, \path{deploy/keycloak/setup-agents.sh}, \path{Kt/}, \path{evidence/ops-up-timing.txt}, \path{report/} \\ \hline
+\end{longtable}}
 
 % ================= MỤC LỤC & CÁC DANH MỤC =================
 \clearpage
@@ -169,15 +186,40 @@ GVHD: \gvhd
 AI & Artificial Intelligence & Trí tuệ nhân tạo \\ \hline
 API & Application Programming Interface & Giao diện lập trình ứng dụng \\ \hline
 CEL & Common Expression Language & Ngôn ngữ biểu thức của chính sách \\ \hline
+CI/CD & Continuous Integration / Continuous Delivery & Tích hợp và triển khai liên tục \\ \hline
+CNI & Container Network Interface & Giao diện plugin mạng cho container \\ \hline
+CNTT & Công nghệ thông tin & Information Technology \\ \hline
 CRD & Custom Resource Definition & Tài nguyên tùy biến của Kubernetes \\ \hline
-JWT & JSON Web Token & Mã thông báo dạng JSON \\ \hline
+DAG & Directed Acyclic Graph & Đồ thị có hướng không chu trình, đơn vị luồng công việc của Airflow \\ \hline
+ESOP & Employee Stock Ownership Plan & Chương trình phát hành cổ phiếu cho người lao động \\ \hline
+HĐQT & Hội đồng quản trị & Board of Directors \\ \hline
+HTTP & Hypertext Transfer Protocol & Giao thức truyền siêu văn bản \\ \hline
+IaC & Infrastructure as Code & Quản lý hạ tầng bằng mã \\ \hline
+IDS & Intrusion Detection System & Hệ thống phát hiện xâm nhập \\ \hline
+IP & Internet Protocol & Giao thức Internet \\ \hline
+JSON & JavaScript Object Notation & Định dạng dữ liệu dạng văn bản \\ \hline
+JSON-RPC & JSON Remote Procedure Call & Giao thức gọi thủ tục từ xa mã hóa bằng JSON \\ \hline
+JWK & JSON Web Key & Khóa mật mã biểu diễn bằng JSON \\ \hline
 JWKS & JSON Web Key Set & Tập khóa công khai xác minh JWT \\ \hline
+JWS & JSON Web Signature & Chữ ký số cho dữ liệu JSON \\ \hline
+JWT & JSON Web Token & Mã thông báo dạng JSON \\ \hline
 K8s & Kubernetes & Nền tảng điều phối container \\ \hline
 MCP & Model Context Protocol & Giao thức ngữ cảnh mô hình \\ \hline
+NHNN & Ngân hàng Nhà nước Việt Nam & State Bank of Vietnam \\ \hline
+NIST & National Institute of Standards and Technology & Viện Tiêu chuẩn và Công nghệ Quốc gia Hoa Kỳ \\ \hline
+OAuth & Open Authorization & Khung chuẩn ủy quyền truy cập \\ \hline
 OIDC & OpenID Connect & Giao thức xác thực trên OAuth 2.0 \\ \hline
+OSI & Open Systems Interconnection & Mô hình tham chiếu bảy tầng của mạng máy tính \\ \hline
+PKCE & Proof Key for Code Exchange & Cơ chế chống đánh cắp mã ủy quyền \\ \hline
 PoC & Proof of Concept & Bản chứng minh khái niệm \\ \hline
 RBAC & Role-Based Access Control & Kiểm soát truy cập theo vai trò \\ \hline
-% ... bổ sung các từ viết tắt khác
+RFC & Request for Comments & Văn bản đặc tả chuẩn của IETF \\ \hline
+SDK & Software Development Kit & Bộ công cụ phát triển phần mềm \\ \hline
+SSE & Server-Sent Events & Luồng sự kiện máy chủ đẩy về client \\ \hline
+TLS & Transport Layer Security & Giao thức mã hóa kênh truyền \\ \hline
+UPCoM & Unlisted Public Company Market & Thị trường giao dịch cổ phiếu của công ty đại chúng chưa niêm yết \\ \hline
+WSL & Windows Subsystem for Linux & Môi trường Linux chạy trên Windows \\ \hline
+YAML & YAML Ain't Markup Language & Định dạng tệp cấu hình dạng văn bản \\ \hline
 \end{longtable}}
 
 \heading{DANH MỤC THUẬT NGỮ}
