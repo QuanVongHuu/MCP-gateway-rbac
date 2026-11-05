@@ -1,0 +1,6 @@
+scenario,run,startup_seconds,gateway_ready_seconds,grafana_ready_seconds,rbac_seconds,allow_events,deny_events,rbac_status
+warm,1,4.119,5.145,5.145,1.907,9,9,PASS
+warm,2,4.199,5.230,5.230,1.931,9,9,PASS
+warm,3,4.114,5.142,5.142,1.879,9,9,PASS
+warm,4,4.150,5.181,5.181,1.897,9,9,PASS
+warm,5,4.157,5.189,5.189,1.864,9,9,PASS
