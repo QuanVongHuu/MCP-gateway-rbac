@@ -1,6 +1,27 @@
 \chuong{KẾT LUẬN VÀ KIẾN NGHỊ}
+
 \subsection{Kết quả đạt được}
+\todo{Viết sau khi hoàn thành mục Đánh giá ở Chương 5 (W9): tóm tắt mục tiêu chung đạt được những gì, dẫn số liệu 21/21 công cụ, ma trận 10 agent, NetworkPolicy, 9/9 allow -- deny trên dashboard; kết quả cá nhân của từng thành viên.}
+
 \subsection{Bài học kinh nghiệm}
+
+Bài học đầu tiên là cấu hình sai thường không báo lỗi mà lặng lẽ làm hệ thống kém an toàn hơn. Trong quá trình làm, nhóm gặp ba trường hợp như vậy. Khi khối biến đổi header được đặt lồng nhầm vào bên trong khối xác thực JWT, máy chủ Kubernetes từ chối tệp mới nhưng chính sách cũ vẫn tiếp tục chạy, nên header danh tính giả do client gửi lên vẫn tới được backend. Khi tên công cụ trong quy tắc phân quyền được viết kèm tiền tố target, quy tắc không khớp với công cụ nào và công cụ bị ẩn mà không có thông báo. Và nếu cụm kind dùng phần mềm mạng mặc định, NetworkPolicy được chấp nhận nhưng không chặn gì. Cả ba lỗi đều không làm hệ thống ngừng chạy; chúng chỉ bị phát hiện nhờ kiểm thử đầu cuối so kết quả với kỳ vọng. Từ đó nhóm rút ra rằng với hệ thống xây bằng cấu hình, kiểm thử theo ma trận kỳ vọng không phải phần phụ mà là cơ chế an toàn chính.
+
+Bài học thứ hai là phải kiểm chứng hành vi của công cụ thay vì suy ra từ tài liệu. Trước khi viết chính sách phân quyền, nhóm làm một thí nghiệm riêng để xem agentgateway kết hợp nhiều chính sách như thế nào. Kết quả cho thấy các chính sách cho phép được nối bằng phép HOẶC, nhưng chính sách từ chối lại thắng mọi chính sách cho phép và được đánh giá theo người gọi chứ không theo từng vai trò: một người có hai vai trò sẽ mất quyền của vai trò thứ nhất nếu vai trò thứ hai bị từ chối. Thí nghiệm cũng cho thấy chỉ có chính sách từ chối thì backend vẫn mở cho mọi token hợp lệ. Những hành vi này khó đoán nếu chỉ đọc tài liệu, và chúng là lý do nhóm chọn gom mọi quy tắc vào một chính sách cho phép duy nhất.
+
+Bài học cuối cùng, rút ra từ vai trò AgentOps, là danh tính của agent cần được thiết kế theo năng lực chứ không theo chức danh. Vai trò theo chức danh như \texttt{data\_engineer} phù hợp với con người vì một người làm nhiều việc, nhưng với agent thì cấp thừa quyền. Chia vai trò thành mức đọc và mức ghi trên từng hệ thống cho phép ghép đúng những gì một agent cần, và làm cho ma trận kỳ vọng trở nên đơn giản đến mức kiểm thử tự động được.
 \subsection{Hướng phát triển}
-\todo{Đo hiệu năng, alerting, backend thật, delegated human identity, CI chạy up.ps1.}
+
+Hướng phát triển gần nhất là thay mock bằng backend thật và bổ sung phân quyền ở mức tài nguyên. Gateway hiện chỉ trả lời câu hỏi ``agent có được gọi công cụ này không''. Với backend thật, câu hỏi tiếp theo là ``agent được tác động lên tài nguyên nào'': namespace nào trên Kubernetes, DAG nào trên Airflow, thực thể nào trên OpenMetadata. Kế hoạch là ánh xạ danh tính đã xác thực sang quyền của từng backend, bắt đầu từ Kubernetes RBAC theo namespace, và hoàn thiện việc trao đổi token cho OpenMetadata để hệ thống này tự áp quyền theo đúng người gọi.
+
+Hướng thứ hai là hoàn thiện vòng đời danh tính của agent. Hệ thống hiện tạo được agent và cấp quyền, nhưng chưa có quy trình xoay vòng và thu hồi secret định kỳ, chưa giới hạn thời gian sống của token theo mức rủi ro, và vai trò quản trị toàn quyền chưa có quy trình cấp phát khẩn cấp riêng. Đây là những yêu cầu bắt buộc trước khi đưa agent vào môi trường thật.
+
+Hướng thứ ba là chuyển giám sát từ thụ động sang chủ động. Dashboard hiện giúp điều tra sau khi sự việc xảy ra. Bước tiếp theo là cảnh báo khi số lệnh bị chặn của một agent tăng bất thường, vì đó thường là dấu hiệu agent đang bị dẫn dắt sai mục đích, đồng thời tách được lệnh bị chặn vì thiếu quyền khỏi lệnh gọi sai tên công cụ, có thể bằng cách dùng phương thức từ chối riêng thay cho việc ẩn công cụ.
+
+Cuối cùng, một số nội dung cần thêm dữ liệu trước khi đánh giá: đo độ trễ mà gateway thêm vào mỗi lệnh gọi và thời gian dựng hệ thống từ cụm trống, chạy bộ kiểm thử tự động trong quy trình tích hợp liên tục cho mọi thay đổi chính sách, và mở rộng sang trường hợp agent hành động thay mặt người dùng, khi quyền hiệu lực phải là giao của quyền agent và quyền người dùng.
+
 \subsection{Kiến nghị}
+
+Đối với đơn vị, nhóm kiến nghị áp dụng mô hình một điểm truy cập MCP duy nhất ngay từ khi bắt đầu đưa AI Agent vào vận hành, thay vì để từng agent kết nối thẳng tới từng hệ thống rồi mới gom lại. Mỗi agent nên có danh tính riêng và vai trò theo năng lực, quyền ghi nên được cấp tách khỏi quyền đọc, và mọi thay đổi chính sách nên đi kèm cập nhật ma trận kỳ vọng trong cùng một lần thay đổi để kiểm thử tự động phát hiện sai lệch.
+
+Đối với khoa và chương trình đào tạo, nhóm kiến nghị bổ sung nội dung thực hành về danh tính và phân quyền cho hệ thống tự động, như OAuth 2.0 cho máy với máy và kiểm soát truy cập theo vai trò, vì đây là những vấn đề doanh nghiệp đang gặp khi triển khai AI Agent nhưng ít được đề cập trong các học phần hiện tại.

@@ -13,7 +13,7 @@ Các phụ lục trích ý chính của mã nguồn và cấu hình; phần lư�
 kind: AgentgatewayBackend
 spec:
   mcp:
-    prefixMode: Always          # tool hiển thị là {target}_{tool}
+    prefixMode: Always          # tools appear as {target}_{tool}
     targets:
     - name: dbt
       static: {host: dbt.mcp.svc.cluster.local, port: 80, path: /mcp,
@@ -40,7 +40,7 @@ traffic:
       - {name: x-caller-token,     value: 'request.headers["authorization"]'}
       remove: [authorization]
 ---
-# chính sách thứ hai, gắn vào backend: xóa token trước khi rời gateway
+# second policy, on the backend: drop the token before it leaves the gateway
 backend: {transformation: {request: {remove: [x-caller-token]}}}
 \end{lstlisting}
 \textit{B.3. Phân quyền theo công cụ} (\texttt{rbac/tool-access.yaml})
@@ -50,7 +50,7 @@ backend:
     authorization:
       action: Allow
       policy:
-        matchExpressions:      # các biểu thức được OR với nhau
+        matchExpressions:      # expressions are OR-ed
         - 'has(jwt.roles) && "analyst" in jwt.roles
            && mcp.tool.target == "openmetadata"
            && mcp.tool.name in ["search_metadata", "get_entity_details", ...]'
@@ -64,7 +64,7 @@ backend:
 kind: NetworkPolicy
 metadata: {name: backends-from-gateway-only, namespace: mcp}
 spec:
-  podSelector: {}               # mọi pod trong namespace mcp
+  podSelector: {}               # every pod in namespace mcp
   policyTypes: [Ingress]
   ingress:
   - from:
@@ -77,19 +77,19 @@ spec:
 \textit{C.1. Bộ khung chung} (\texttt{servers/mockkit.py})
 \begin{lstlisting}[language=Python]
 def new_server(name):
-    # stateless + JSON: bản sao gateway nào cũng phục vụ được mọi yêu cầu
+    # stateless + JSON: any gateway replica can serve any request
     return FastMCP(name, host="0.0.0.0", port=8000,
                    stateless_http=True, json_response=True)
 
 def seen(ctx, target, tool, args):
-    """Ghi lại ai gọi công cụ nào. Không bao giờ ghi bản thân token."""
+    """Log who called which tool. Never logs the token itself."""
     headers = ctx.request_context.request.headers
     record = {"target": target, "tool": tool, "args": args,
               "x_agent_id": headers.get("x-agent-id"),
               "x_forwarded_user": headers.get("x-forwarded-user"),
               "x_forwarded_groups": headers.get("x-forwarded-groups"),
               "authorization_present": "authorization" in headers}
-    if token := bearer(headers):          # chỉ trích claim không nhạy cảm
+    if token := bearer(headers):          # non-sensitive claims only
         claims = decode(token)
         record["token"] = {k: claims.get(k) for k in
                            ("iss", "aud", "azp", "sub", "preferred_username", "roles")}
@@ -105,6 +105,32 @@ def test(ctx, selector=""):
     return {"result": "mock: dbt test -> PASS=17 WARN=1 ERROR=1",
             "seen_by_mock": who}
 \end{lstlisting}
+\textit{C.3. Chức năng của 21 công cụ}
+{\singlespacing\renewcommand{\arraystretch}{1.2}\small
+\begin{longtable}{|p{2.4cm}|p{3.8cm}|c|p{6.4cm}|}\hline
+\textbf{Target} & \textbf{Công cụ} & \textbf{Loại} & \textbf{Chức năng} \\ \hline\endhead
+radar & list\_namespaces & Đọc & Liệt kê namespace của cụm \\ \hline
+radar & list\_resources & Đọc & Tóm tắt tài nguyên theo loại \\ \hline
+radar & get\_pod\_logs & Đọc & Lấy log gần nhất của pod \\ \hline
+radar & manage\_workload & Ghi & Khởi động lại, scale, rollback workload \\ \hline
+spark-history & list\_applications & Đọc & Liệt kê ứng dụng Spark theo trạng thái \\ \hline
+spark-history & get\_stage & Đọc & Chi tiết một stage và chỉ số task \\ \hline
+spark-history & get\_job\_bottlenecks & Đọc & Tìm stage chậm, task lệch, lỗi executor \\ \hline
+openmetadata & search\_metadata & Đọc & Tìm tài sản dữ liệu theo từ khóa, owner, tag \\ \hline
+openmetadata & get\_entity\_details & Đọc & Chi tiết một thực thể theo tên đầy đủ \\ \hline
+openmetadata & get\_entity\_lineage & Đọc & Nguồn phía trên và đích phía dưới \\ \hline
+openmetadata & patch\_entity & Ghi & Sửa mô tả, tag, owner bằng JSON Patch \\ \hline
+dbt & list\_metrics & Đọc & Liệt kê metric của semantic layer \\ \hline
+dbt & query\_metrics & Đọc & Truy vấn metric theo chiều \\ \hline
+dbt & get\_model\_health & Đọc & Trạng thái chạy, test, độ tươi của model \\ \hline
+dbt & get\_lineage & Đọc & Cha và con của một node \\ \hline
+dbt & test & Thực thi & Chạy data test theo selector \\ \hline
+airflow & list\_dags & Đọc & Liệt kê DAG và lần chạy gần nhất \\ \hline
+airflow & get\_dag\_run & Đọc & Trạng thái một lần chạy DAG \\ \hline
+airflow & get\_task\_logs & Đọc & Log của một lần thử task \\ \hline
+airflow & trigger\_dag & Ghi & Kích hoạt một lần chạy mới \\ \hline
+airflow & pause\_dag & Ghi & Tạm dừng DAG \\ \hline
+\end{longtable}}
 
 \subsection*{Phụ lục D. Danh tính AI Agent}
 \addcontentsline{toc}{subsection}{Phụ lục D. Danh tính AI Agent}
@@ -114,41 +140,47 @@ def test(ctx, selector=""):
  "publicClient": false, "serviceAccountsEnabled": true,
  "standardFlowEnabled": false, "directAccessGrantsEnabled": false,
  "secret": "${CLUSTER_OBSERVER_AGENT_SECRET}",
- "protocolMappers": [ audience mcp-gateway, client roles -> claim "roles" ]}
+ "protocolMappers": [ audience mcp-gateway, client roles -> claim "roles",
+                      hardcoded claim kube_group = "kube_viewer" ]}
 ...
 "users": [{"serviceAccountClientId": "cluster-observer-agent",
            "clientRoles": {"mcp-gateway": ["kube_viewer"]}}, ...]
 \end{lstlisting}
 \textit{D.2. Nạp agent vào realm} (\texttt{deploy/keycloak/setup-agents.sh})
 \begin{lstlisting}[language=bash]
-for cid in <client có secret>; do       # thay giá trị giữ chỗ bằng secret thật
+for cid in <clients with a secret>; do   # replace placeholders with real secrets
   sec=$(kubectl get secret agent-client-secrets -o jsonpath={.data.$cid} | base64 -d)
   json=$(jq '(.clients[] | select(.clientId == $c)).secret = $s' ...)
 done
-# import một phần: chỉ client agent và vai trò, giữ nguyên mcp-gateway
+# partial import: agent clients and roles only, mcp-gateway untouched
 kcadm.sh create partialImport -r mcp  (ifResourceExists: OVERWRITE)
 kcadm.sh add-roles --uusername service-account-$cid --rolename $role
 \end{lstlisting}
 
 \subsection*{Phụ lục E. Tự động hóa triển khai}
 \addcontentsline{toc}{subsection}{Phụ lục E. Tự động hóa triển khai}
-\textit{E.1. Script khởi động} (\texttt{ops/up.ps1})
+\textit{E.1. Lớp bọc PowerShell} (\texttt{ops/up.ps1})
 \begin{lstlisting}
-function Run { & $args[0] $args[1..]; if ($LASTEXITCODE -ne 0) { Die "..." } }
-function WaitFor($what, $timeoutSec, $check) {      # chờ có thời hạn
-    while (-not (& $check)) { if (quá hạn) { Die "timed out waiting for $what" } }
-}
-function Forward($port, ...) {                       # chỉ mở khi cổng còn trống
-    if ((HttpCode "http://localhost:$port/") -ne 0) { "already answers" }
-    else { Start-Process kubectl "port-forward ..." -WindowStyle Hidden }
-}
-Step "0. Preflight"     # công cụ, Docker, context, CRD, image mock
-Step "1. Kubernetes layers"; Run bash scripts/up.sh
-Step "2. Real radar";   Run helm upgrade -i radar-real ...
-...
-Step "6. Gateway"; WaitFor "the gateway ..." 600 { GatewayReady }
+$repoDir = (& wsl.exe -d $Distro -- wslpath -u $PSScriptRoot).Trim()
+$command = "cd '$repoDir' && bash scripts/up.sh && bash observability/grafana/up.sh"
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+& wsl.exe -d $Distro -- bash -lc $command
+if ($LASTEXITCODE -ne 0) { throw "Startup failed after $($stopwatch.Elapsed)" }
 \end{lstlisting}
-\textit{E.2. Script dọn dẹp} (\texttt{ops/down.ps1})
+\textit{E.2. Áp các lớp cấu hình} (\texttt{scripts/up.sh}, rút gọn)
+\begin{lstlisting}[language=bash]
+set -euo pipefail
+kubectl apply -f deploy/agentgateway/Gateway.yaml -f servers/k8s/mocks.yaml ...
+kubectl apply -f deploy/keycloak/keycloak.yaml
+# setup-realm.sh rebuilds the realm, so only run it when the realm is missing
+kcadm.sh get realms/mcp || bash deploy/keycloak/setup-realm.sh
+bash scripts/bootstrap-agent-secrets.sh && bash deploy/keycloak/setup-agents.sh
+kubectl apply -f deploy/auth/jwt.yaml -f deploy/identity/openmetadata.yaml
+kubectl apply -f rbac/tool-access.yaml
+kubectl apply -f deploy/network/backends.yaml
+kubectl apply -f observability/access-logs/policy.yaml
+\end{lstlisting}
+\textit{E.3. Script dọn dẹp} (\texttt{ops/down.ps1})
 \begin{lstlisting}
 & kind delete cluster --name $ClusterName
 if ($LASTEXITCODE -ne 0) { Write-Error "Failed to delete ..."; exit $LASTEXITCODE }
@@ -165,6 +197,7 @@ frontend:
       - {name: user,       expression: 'has(jwt.preferred_username) ? ... : "anonymous"'}
       - {name: agent_id,   expression: 'has(jwt.azp) ? jwt.azp : ""'}
       - {name: roles,      expression: 'has(jwt.roles) ? jwt.roles : []'}
+      - {name: mcp_method, expression: 'has(mcp.methodName) ? mcp.methodName : ""'}
       - {name: mcp_target, expression: 'has(mcp.tool.target) ? mcp.tool.target : ""'}
       - {name: mcp_tool,   expression: 'has(mcp.tool.name) ? mcp.tool.name : ""'}
 \end{lstlisting}

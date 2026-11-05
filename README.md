@@ -35,6 +35,8 @@ When it finishes:
 
 Stop with `docker compose -p openmetadata-real down`, `docker compose -p spark-history-real down` and `kind delete cluster --name gatewayapi`.
 
+The optional Grafana audit dashboard is under `observability/grafana/`; it visualizes allowed and denied `tools/call` events by caller, role, target and tool.
+
 ## Architecture
 
 ```mermaid
