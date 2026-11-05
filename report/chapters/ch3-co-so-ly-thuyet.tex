@@ -1,22 +1,128 @@
 \chuong{CƠ SỞ LÝ THUYẾT}
+
+Chương này trình bày các khái niệm cần thiết để hiểu thiết kế ở Chương 4. Mỗi khái niệm được giới thiệu ở mức đủ dùng, kèm theo lý do nó liên quan đến đề tài. Chương đi theo đường đi của một lệnh gọi: bắt đầu từ giao thức MCP mà AI Agent dùng, qua gateway đứng giữa, lớp xác thực và phân quyền, hạ tầng Kubernetes nơi mọi thứ chạy, và kết thúc ở cách quan sát hệ thống. Phần cuối điểm qua các nghiên cứu liên quan để đặt đề tài vào bối cảnh chung.
+
+% =====================================================================
 \subsection{Model Context Protocol}
-\subsubsection{Kiến trúc client -- server và tool}
-\subsubsection{Streamable HTTP transport}
+
+\subsubsection{Kiến trúc client -- server và công cụ}
+
+Model Context Protocol (MCP) là một giao thức mở cho phép ứng dụng AI kết nối với nguồn dữ liệu và công cụ bên ngoài theo một cách thống nhất \parencite{mcp_spec}. Trước khi có MCP, mỗi ứng dụng AI muốn dùng một hệ thống phải viết một bộ kết nối riêng cho hệ thống đó. Với $m$ ứng dụng và $n$ hệ thống, số bộ kết nối cần viết là $m \times n$. MCP giảm con số này xuống $m + n$: mỗi ứng dụng chỉ cần nói được MCP, và mỗi hệ thống chỉ cần cung cấp một MCP server.
+
+Giao thức có hai vai trò. MCP client nằm trong ứng dụng AI, gửi yêu cầu. MCP server nằm phía hệ thống, cung cấp khả năng. Server có thể cung cấp ba loại khả năng là tài nguyên (resource), mẫu câu lệnh (prompt) và công cụ (tool). Đề tài này chỉ dùng công cụ. Một công cụ là một hàm có tên, có mô tả bằng ngôn ngữ tự nhiên và có lược đồ tham số. Client dùng hai thông điệp chính: \texttt{tools/list} để hỏi server có những công cụ gì, và \texttt{tools/call} để gọi một công cụ cụ thể. Các thông điệp được mã hóa theo JSON-RPC 2.0.
+
+Điểm cần lưu ý là mô hình ngôn ngữ tự chọn công cụ dựa vào tên và mô tả trong kết quả \texttt{tools/list}. Nói cách khác, danh sách công cụ trả về chính là ``thực đơn'' của agent. Đặc điểm này giải thích vì sao đề tài yêu cầu lọc danh sách theo quyền (yêu cầu F3): công cụ không có trong thực đơn thì agent sẽ không nghĩ tới việc gọi.
+
+\subsubsection{Streamable HTTP}
+
+MCP hỗ trợ hai cách truyền thông điệp. Cách thứ nhất là stdio, trong đó client khởi chạy server như một tiến trình con trên cùng máy và trao đổi qua đầu vào, đầu ra chuẩn. Cách này đơn giản nhưng chỉ dùng được trên một máy. Cách thứ hai là Streamable HTTP, trong đó client gửi thông điệp bằng HTTP POST tới một địa chỉ của server, và server có thể trả lời bằng JSON hoặc bằng một luồng sự kiện (server-sent events).
+
+Đề tài dùng Streamable HTTP vì hai lý do. Thứ nhất, server chạy trong cụm Kubernetes còn agent chạy ở nơi khác, nên bắt buộc phải truyền qua mạng. Thứ hai, vì là HTTP, mọi công cụ quen thuộc của web đều áp dụng được: header \texttt{Authorization} để mang token, mã trạng thái HTTP để báo lỗi, và gateway HTTP để đứng giữa. Gateway có thể đọc được nội dung thông điệp MCP bên trong yêu cầu HTTP, nhờ đó phân quyền được đến từng công cụ chứ không chỉ đến từng địa chỉ.
+
+% =====================================================================
 \subsection{API Gateway và MCP Gateway}
+
+\subsubsection{Vai trò của gateway}
+
+API gateway là một thành phần đứng trước nhiều dịch vụ phía sau, nhận mọi yêu cầu từ bên ngoài rồi chuyển tới đúng dịch vụ. Lợi ích chính của mô hình này là gom các việc chung như xác thực, phân quyền, ghi log và giới hạn tần suất về một chỗ, thay vì mỗi dịch vụ tự làm theo cách riêng. Khi các việc này nằm ở một chỗ, chúng được làm nhất quán, và khi cần thay đổi chỉ phải sửa một nơi.
+
+MCP gateway áp dụng ý tưởng này cho MCP. Ngoài các việc của một API gateway thông thường, MCP gateway còn hiểu nội dung giao thức MCP. Nó biết một yêu cầu là \texttt{tools/list} hay \texttt{tools/call}, và biết công cụ nào đang được gọi. Nhờ hiểu giao thức, MCP gateway làm được hai việc mà API gateway thông thường không làm được: gộp danh sách công cụ từ nhiều server thành một (multiplexing), và phân quyền đến từng công cụ thay vì từng địa chỉ.
+
 \subsubsection{Gateway API của Kubernetes}
-\subsubsection{agentgateway và cơ chế multiplexing}
-\subsection{Xác thực và ủy quyền}
+
+Gateway API là bộ đặc tả chuẩn của Kubernetes để khai báo cách lưu lượng đi vào cụm \parencite{gatewayapi}. Gateway API tách cấu hình thành nhiều tài nguyên theo vai trò của người quản lý. Tài nguyên \texttt{Gateway} mô tả điểm nhận lưu lượng, thường do đội hạ tầng quản lý. Tài nguyên \texttt{HTTPRoute} mô tả quy tắc định tuyến, ví dụ đường dẫn \texttt{/mcp} đi tới backend nào, thường do đội ứng dụng quản lý. Cách tách này cho phép mỗi đội sửa phần của mình mà không ảnh hưởng phần của đội khác. Gateway API chỉ là đặc tả; phần mềm thực thi đặc tả, gọi là implementation, có thể là Envoy, NGINX hay agentgateway.
+
+\subsubsection{agentgateway}
+
+agentgateway là một implementation của Gateway API được thiết kế riêng cho các giao thức của AI Agent như MCP \parencite{agentgateway}. Ngoài các tài nguyên chuẩn của Gateway API, agentgateway bổ sung hai tài nguyên riêng. \texttt{AgentgatewayBackend} khai báo một backend MCP gồm nhiều target, mỗi target là một MCP server. \texttt{AgentgatewayPolicy} khai báo các chính sách như xác thực JWT, biến đổi header, phân quyền và access log. Chính sách có thể gắn vào Gateway để áp cho mọi yêu cầu, hoặc gắn vào một backend để chỉ áp cho backend đó.
+
+Quy tắc phân quyền trong agentgateway được viết bằng CEL (Common Expression Language), một ngôn ngữ biểu thức nhỏ do Google phát triển \parencite{cel_spec}. CEL được thiết kế để luôn kết thúc và không có tác dụng phụ, nên an toàn khi dùng để viết quy tắc bảo mật: một quy tắc viết sai có thể cho kết quả sai, nhưng không thể làm treo gateway. Trong agentgateway, biểu thức CEL truy cập được các claim của token đã xác thực (\texttt{jwt.*}) và thông tin MCP của yêu cầu (\texttt{mcp.tool.target}, \texttt{mcp.tool.name}).
+
+% =====================================================================
+\subsection{Xác thực và phân quyền}
+
+Hai khái niệm này thường bị dùng lẫn nhưng trả lời hai câu hỏi khác nhau. Xác thực (authentication) trả lời câu hỏi ``bạn là ai''. Phân quyền (authorization) trả lời câu hỏi ``bạn được làm gì''. Phân quyền luôn đến sau xác thực, vì không thể quyết định quyền của một người khi chưa biết người đó là ai.
+
 \subsubsection{OAuth 2.0, OpenID Connect và JWT}
-\subsubsection{Client credentials cho tài khoản dịch vụ}
-\subsubsection{Token exchange (RFC 8693)}
+
+OAuth 2.0 là khung chuẩn cho phép một ứng dụng nhận quyền truy cập có giới hạn vào một dịch vụ mà không cần biết mật khẩu của người dùng \parencite{rfc6749}. OAuth định nghĩa bốn bên: chủ sở hữu tài nguyên, client muốn truy cập, máy chủ cấp quyền (authorization server) và máy chủ tài nguyên (resource server). Trong đề tài, Keycloak đóng vai máy chủ cấp quyền, AI Agent là client và gateway là máy chủ tài nguyên. Kết quả của OAuth là một access token mà client đính kèm vào mỗi yêu cầu.
+
+OpenID Connect (OIDC) là một lớp xây trên OAuth 2.0, bổ sung phần xác thực danh tính và chuẩn hóa cách máy chủ cấp quyền công bố thông tin cấu hình, trong đó có địa chỉ chứa khóa công khai \parencite{oidc_core}. Keycloak là một máy chủ cấp quyền mã nguồn mở hỗ trợ cả OAuth 2.0 và OIDC \parencite{keycloak}. Trong Keycloak, mỗi realm là một không gian quản lý độc lập gồm người dùng, client và vai trò riêng.
+
+Access token trong đề tài có định dạng JSON Web Token (JWT) \parencite{rfc7519}. Một JWT gồm ba phần: header, phần thân chứa các claim và chữ ký. Các claim quan trọng trong đề tài là \texttt{iss} (ai cấp token), \texttt{aud} (token dành cho ai), \texttt{exp} (hạn dùng), \texttt{azp} (client nào xin token) và \texttt{roles} (danh sách vai trò). Ưu điểm lớn của JWT là gateway tự kiểm tra được token mà không cần hỏi Keycloak ở mỗi yêu cầu. Gateway chỉ cần tải khóa công khai của Keycloak một lần từ địa chỉ JWKS (JSON Web Key Set), rồi dùng khóa đó kiểm tra chữ ký. Nếu chữ ký đúng, gateway tin các claim trong token. Cái giá của cách này là token đã cấp không thể bị thu hồi ngay; nó vẫn dùng được cho đến khi hết hạn. Vì vậy token trong đề tài có thời hạn ngắn, năm phút.
+
+\subsubsection{Luồng client credentials}
+
+OAuth 2.0 định nghĩa nhiều luồng xin token cho các tình huống khác nhau. Luồng phổ biến nhất dành cho người dùng: ứng dụng chuyển người dùng tới trang đăng nhập, người dùng nhập mật khẩu và đồng ý, rồi ứng dụng nhận token. Luồng này không dùng được cho AI Agent vì không có ai ngồi trước màn hình để đăng nhập.
+
+Luồng client credentials được thiết kế cho trường hợp client hành động nhân danh chính nó chứ không nhân danh người dùng \parencite{rfc6749}. Client gửi mã định danh (client ID) và mật khẩu riêng (client secret) của nó tới máy chủ cấp quyền và nhận về token. Trong Keycloak, mỗi client dùng luồng này được gắn với một tài khoản dịch vụ (service account), và vai trò được gán cho tài khoản dịch vụ đó giống như gán cho một người dùng. Đây là luồng đề tài dùng cho AI Agent.
+
+\subsubsection{Token exchange}
+
+Token exchange là một mở rộng của OAuth 2.0 cho phép đổi một token đang có lấy một token khác \parencite{rfc8693}. Tình huống điển hình là khi một dịch vụ trung gian, như gateway, cần gọi tiếp một dịch vụ phía sau nhân danh người dùng ban đầu. Gateway không nên gửi tiếp token gốc, vì token đó có \texttt{aud} là gateway và nếu bị lộ ở dịch vụ phía sau thì có thể bị dùng để gọi lại gateway. Thay vào đó, gateway gửi token gốc tới máy chủ cấp quyền và xin một token mới, cùng danh tính người dùng nhưng \texttt{aud} là dịch vụ phía sau. Token mới chỉ dùng được ở đúng dịch vụ đó. Đề tài dùng token exchange cho OpenMetadata, hệ thống duy nhất tự kiểm tra token của người gọi.
+
 \subsubsection{RBAC và nguyên tắc đặc quyền tối thiểu}
+
+Kiểm soát truy cập dựa trên vai trò (Role-Based Access Control, RBAC) gán quyền cho vai trò thay vì cho từng người, rồi gán vai trò cho người \parencite{sandhu1996rbac}. Khi có $u$ người và $p$ quyền, gán trực tiếp cần quản lý tới $u \times p$ liên kết; qua vai trò, mỗi người chỉ cần gắn với vài vai trò và mỗi vai trò gắn với một nhóm quyền. Khi một người chuyển việc, chỉ cần đổi vai trò của họ. Một người có nhiều vai trò nhận hợp các quyền của các vai trò đó.
+
+Nguyên tắc đặc quyền tối thiểu (least privilege) yêu cầu mỗi chủ thể chỉ có đúng những quyền cần cho công việc, không hơn \parencite{saltzer1975protection}. Nguyên tắc này hạn chế thiệt hại khi một chủ thể bị chiếm quyền hoặc hoạt động sai. Với AI Agent, nguyên tắc này càng quan trọng vì agent có thể bị lừa bằng nội dung độc hại trong dữ liệu nó đọc (prompt injection) và gọi công cụ ngoài ý muốn \parencite{breakingmcp}. Nếu agent chỉ có quyền đọc, một cuộc tấn công thành công cũng không gây ra thay đổi nào. Hai nguyên tắc trên đi cùng một nguyên tắc thiết kế khác là mặc định từ chối (deny by default): khi không có quy tắc cho phép thì từ chối.
+
+\subsubsection{Zero Trust}
+
+Mô hình bảo mật truyền thống coi mọi thứ bên trong mạng nội bộ là đáng tin. Mô hình Zero Trust bác bỏ giả định này: không tin bất kỳ yêu cầu nào chỉ vì nó đến từ bên trong, mà phải xác thực và phân quyền mọi yêu cầu \parencite{nist80207}. Đề tài áp dụng tinh thần này ở chỗ gateway kiểm tra token của mọi yêu cầu, kể cả từ client nội bộ. Tuy nhiên, đề tài cũng có một điểm chưa theo Zero Trust: backend tin header danh tính do gateway gửi xuống mà không tự kiểm tra lại. Điểm này được bù đắp bằng quy tắc mạng, bảo đảm chỉ gateway mới gửi được yêu cầu tới backend.
+
+% =====================================================================
 \subsection{Kubernetes và tự động hóa hạ tầng}
+
 \subsubsection{kind, CRD và Helm}
+
+Kubernetes là nền tảng điều phối container, tự động triển khai, mở rộng và khôi phục ứng dụng. Trong Kubernetes, người dùng không ra lệnh ``hãy chạy container này'' mà khai báo trạng thái mong muốn, ví dụ ``cần một bản sao của ứng dụng này luôn chạy'', và Kubernetes tự làm mọi việc cần thiết để đạt và duy trì trạng thái đó. Các đơn vị quen thuộc gồm Pod (một hoặc vài container chạy cùng nhau), Deployment (quản lý số bản sao của Pod), Service (địa chỉ ổn định để gọi tới các Pod) và Namespace (không gian tên để gom và tách các tài nguyên) \parencite{k8s_overview}.
+
+kind (Kubernetes in Docker) chạy một cụm Kubernetes hoàn chỉnh bên trong container Docker, mỗi node của cụm là một container \parencite{kind_docs}. Đề tài dùng kind vì nó cho một cụm Kubernetes thật trên máy cá nhân, dựng trong vài phút và xóa không để lại dấu vết. Phần mềm mạng mặc định của kind không thực thi NetworkPolicy, nên cụm của đề tài tắt phần mềm mạng mặc định và cài Calico thay thế \parencite{calico_docs}. Nếu bỏ qua bước này, mọi NetworkPolicy vẫn được Kubernetes chấp nhận nhưng không có tác dụng, và lỗi này không gây ra bất kỳ thông báo nào.
+
+Kubernetes có sẵn một số loại tài nguyên, nhưng cho phép thêm loại mới qua CRD (Custom Resource Definition) \parencite{k8s_crd}. Gateway API và các tài nguyên của agentgateway đều là CRD, nên chúng được tạo, xem và xóa bằng cùng công cụ như tài nguyên gốc. Helm là trình quản lý gói cho Kubernetes: một gói Helm (chart) đóng gói toàn bộ tài nguyên của một ứng dụng kèm các tham số cấu hình, cài bằng một lệnh \parencite{helm_docs}. Đề tài dùng Helm để cài agentgateway và Radar.
+
 \subsubsection{NetworkPolicy}
+
+Mặc định, mọi Pod trong một cụm Kubernetes gọi được tới mọi Pod khác. NetworkPolicy là tài nguyên cho phép giới hạn lưu lượng này, ví dụ chỉ cho phép Pod trong namespace A nhận yêu cầu từ namespace B \parencite{k8s_netpol}. Khi một Pod được chọn bởi ít nhất một NetworkPolicy, mọi lưu lượng vào Pod đó bị chặn trừ những gì chính sách cho phép. Cần lưu ý là NetworkPolicy chỉ có tác dụng khi phần mềm mạng của cụm (CNI) hỗ trợ nó, và chỉ áp dụng cho các Pod trong cụm, không áp dụng cho container chạy ngoài cụm.
+
 \subsubsection{Infrastructure as Code và tính idempotent}
+
+Infrastructure as Code (IaC) là cách quản lý hạ tầng bằng các file định nghĩa thay vì thao tác tay \parencite{morris2020iac}. Khi hạ tầng được viết thành file, nó có thể được lưu trong kho mã, xem lại, so sánh giữa các phiên bản và dựng lại giống hệt ở nơi khác. Các tài nguyên Kubernetes dạng YAML và các script khởi tạo trong đề tài đều là IaC.
+
+Một tính chất quan trọng của IaC là tính idempotent: thực hiện một thao tác một lần hay nhiều lần đều cho cùng kết quả. Lệnh \texttt{kubectl apply} của Kubernetes có tính chất này vì nó so sánh trạng thái hiện tại với trạng thái khai báo và chỉ thay đổi phần khác nhau; lệnh \texttt{helm upgrade -{}-install} cũng vậy, cài mới nếu chưa có và cập nhật nếu đã có. Một script idempotent có thể chạy lại an toàn sau khi bị dừng giữa chừng, đây là điều kiện để đáp ứng yêu cầu O1.
+
+% =====================================================================
 \subsection{Mock server trong kiểm thử}
+
+Trong kiểm thử phần mềm, ``test double'' là tên gọi chung cho các đối tượng thay thế một thành phần thật khi kiểm thử \parencite{fowler_mocks}. Có nhiều loại: stub chỉ trả về dữ liệu cố định, còn mock ngoài việc trả dữ liệu còn ghi lại cách nó được gọi để bộ kiểm thử kiểm tra sau. Mock server áp dụng ý tưởng này ở mức dịch vụ: một server giả có cùng giao diện với server thật nhưng trả về dữ liệu dựng sẵn.
+
+Dùng mock có ba lợi ích. Kết quả kiểm thử lặp lại được vì dữ liệu không thay đổi. Kiểm thử an toàn vì thao tác ghi không tác động lên hệ thống thật. Và kiểm thử chạy được ở bất kỳ đâu, không phụ thuộc vào việc hệ thống thật có sẵn sàng hay không. Mock trong đề tài thuộc loại ghi lại cách được gọi: nó trả về cả những header nó nhận được, nhờ đó kiểm tra được gateway có gửi đúng danh tính và đã xóa token chưa. Giới hạn của mock là nó chỉ chứng minh được gateway hoạt động đúng với mock; việc hệ thống thật có hoạt động giống mock hay không cần được kiểm tra riêng.
+
+% =====================================================================
 \subsection{Observability}
+
 \subsubsection{Log, metric và trace}
-\subsubsection{Loki, Alloy và Grafana}
+
+Observability là khả năng hiểu trạng thái bên trong của hệ thống chỉ bằng cách quan sát dữ liệu nó phát ra \parencite{majors2022observability}. Dữ liệu này thường được chia làm ba loại. Log là các bản ghi sự kiện riêng lẻ, mỗi dòng mô tả một việc đã xảy ra. Metric là các số đo tổng hợp theo thời gian, như số yêu cầu mỗi giây. Trace theo dõi một yêu cầu đi qua nhiều dịch vụ. Mỗi loại trả lời một kiểu câu hỏi khác nhau: metric cho biết có vấn đề, trace cho biết vấn đề ở đâu, còn log cho biết chi tiết chuyện gì đã xảy ra.
+
+Với bài toán kiểm toán của đề tài, log là loại phù hợp nhất. Câu hỏi ``ai đã gọi công cụ nào và có bị chặn không'' đòi hỏi chi tiết từng sự kiện, kèm thông tin người gọi. Metric chỉ cho biết có bao nhiêu lệnh, và để giữ số lượng chuỗi số đo ở mức nhỏ, metric thường không gắn nhãn theo từng người gọi; số đo mặc định của agentgateway ghi được tên công cụ nhưng không ghi agent nào đã gọi. Trace có giá trị khi một yêu cầu đi qua nhiều dịch vụ, còn trong đề tài đường đi chỉ gồm gateway và một backend, nên trace ít thêm thông tin cho câu hỏi kiểm toán. Một dạng log đặc biệt là access log, do gateway hoặc web server ghi cho mỗi yêu cầu nó nhận. Vì gateway là nơi duy nhất vừa biết danh tính đã xác thực vừa biết quyết định cho phép hay từ chối, access log của gateway là nguồn dữ liệu kiểm toán tự nhiên.
+
+\subsubsection{Alloy, Loki và Grafana}
+
+Đề tài dùng ba công cụ của Grafana Labs, mỗi công cụ một vai trò. Alloy là bộ thu thập: nó hỏi Kubernetes danh sách Pod cần theo dõi, đọc log của các Pod đó, gắn nhãn như namespace và tên Pod rồi gửi đi \parencite{alloy_docs}. Loki là nơi lưu trữ log \parencite{loki_docs}. Khác với các hệ thống như Elasticsearch đánh chỉ mục toàn bộ nội dung log, Loki chỉ đánh chỉ mục một tập nhỏ nhãn như namespace và tên pod, còn nội dung log được nén và lưu nguyên. Cách này làm Loki tốn ít bộ nhớ và dung lượng hơn nhiều, đổi lại việc tìm kiếm theo nội dung chậm hơn. Với khối lượng log nhỏ của một môi trường thử nghiệm, sự đánh đổi này có lợi. Truy vấn log trong Loki được viết bằng ngôn ngữ LogQL, cho phép lọc dòng, trích trường bằng biểu thức chính quy và đếm số dòng theo thời gian. Cuối cùng, Grafana là công cụ dựng dashboard, đọc dữ liệu từ Loki và hiển thị thành biểu đồ, bảng và danh sách log \parencite{grafana_docs}. Dashboard có thể khai báo bằng file cấu hình thay vì thao tác trên giao diện, nhờ đó cũng được quản lý như mã nguồn.
+
+% =====================================================================
 \subsection{Các nghiên cứu và giải pháp liên quan}
-\todo{GatewayBench, MCP-Guard, Simplified MCP Gateways, Securing MCP; lý do chọn agentgateway và Keycloak.}
+
+Bảo mật MCP là một chủ đề mới, phần lớn nghiên cứu xuất hiện từ năm 2025. Các nghiên cứu có thể chia thành ba hướng.
+
+Hướng thứ nhất phân tích rủi ro của chính giao thức. \textcite{breakingmcp} phân tích đặc tả MCP và chỉ ra các điểm yếu dẫn đến tấn công prompt injection qua công cụ, đồng thời đề xuất mở rộng giao thức để xác minh nguồn gốc thông điệp. \textcite{securingmcp} tổng hợp các rủi ro và đề xuất các biện pháp kiểm soát ở mức quản trị, trong đó có mô hình gateway tập trung, nhưng nêu rõ là chưa đo chi phí thực thi các biện pháp này.
+
+Hướng thứ hai đề xuất lớp phòng thủ đứng giữa client và server. \textcite{mcpguard} xây dựng một proxy nhiều tầng để phát hiện nội dung độc hại trong công cụ và kết quả trả về. \textcite{securemcpgw} đề xuất kiến trúc gateway cho doanh nghiệp kết hợp OAuth 2.1, reverse proxy và tường lửa, nhưng chỉ đánh giá định tính trên một bản chứng minh khái niệm.
+
+Hướng thứ ba đánh giá các gateway có sẵn. \textcite{gatewaybench} xây dựng bộ đánh giá thống nhất cho MCP gateway về khả năng, hiệu năng và bảo mật, so sánh nhiều sản phẩm trong đó có agentgateway.
+
+So với các nghiên cứu trên, đề tài này không đề xuất cơ chế bảo mật mới, mà tập trung vào việc ghép các chuẩn sẵn có (OAuth 2.0, token exchange, RBAC, NetworkPolicy) thành một hệ thống chạy được và kiểm chứng được. Phần lớn các nghiên cứu về gateway tập trung vào việc chặn nội dung độc hại, trong khi đề tài tập trung vào câu hỏi ai được gọi công cụ nào. Hai hướng bổ sung cho nhau: kiểm soát danh tính và quyền hạn giới hạn thiệt hại khi một agent bị tấn công, còn lọc nội dung giảm khả năng agent bị tấn công.
+
+Đề tài chọn agentgateway vì nó hiểu giao thức MCP sẵn, hỗ trợ phân quyền đến từng công cụ bằng CEL và cấu hình hoàn toàn bằng tài nguyên Kubernetes, phù hợp với nguyên tắc chỉ dùng cấu hình. Keycloak được chọn vì là máy chủ cấp quyền mã nguồn mở phổ biến, hỗ trợ đầy đủ client credentials và token exchange theo chuẩn từ phiên bản 26.2.
