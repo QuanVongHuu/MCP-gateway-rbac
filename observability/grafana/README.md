@@ -9,6 +9,7 @@ each event by authenticated user, JWT roles, MCP target and tool.
 - **Alloy** discovers only the `agentgateway-proxy` pods and sends their stdout logs to Loki.
 - **Loki** stores logs on ephemeral kind storage. Data is reset with the cluster.
 - **Grafana** provisions Loki and the **MCP Gateway - Allow and Deny** dashboard automatically.
+- **Grafana Image Renderer** renders reproducible PNG evidence from the provisioned dashboard.
 
 The dashboard classifies a successful `tools/call` with HTTP 200 as `allow`. A tool-level denial
 is HTTP 400 with `reason=MCP` and `Unknown tool`, as observed for agentgateway v1.5.0. The policy in
@@ -32,6 +33,8 @@ events should appear within a few seconds.
 ```bash
 kubectl get pods -n observability
 curl -u admin:admin http://localhost:3000/api/health
+curl -u admin:admin -o report/images/grafana-allow-deny.png \
+  'http://localhost:3000/render/d/mcp-allow-deny/mcp-gateway-allow-and-deny?orgId=1&width=1920&height=1800&kiosk'
 curl -G http://localhost:3100/loki/api/v1/query_range \
   --data-urlencode 'query={namespace="agentgateway-system"}' \
   --data-urlencode "start=$(date -d '5 minutes ago' +%s)000000000"
