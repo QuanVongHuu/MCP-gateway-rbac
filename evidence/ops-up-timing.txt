@@ -1,0 +1,15 @@
+Startup timing evidence
+=======================
+
+Recorded: 2026-11-05 (Asia/Taipei)
+Cluster: kind-mcp; all workloads and container images already present (warm start).
+Workload measured: bash scripts/up.sh && bash observability/grafana/up.sh
+This is the workload invoked by ops/up.ps1.
+
+Elapsed: 4.096 seconds (4096 ms)
+Exit status: 0
+
+Note: Windows PowerShell cannot invoke WSL again when it is itself started from
+this WSL session (UtilAcceptVsock error). The equivalent WSL workload was run
+directly to obtain a valid timing measurement. ops/up.ps1 is intended to be run
+from native Windows PowerShell and delegates the same workload to WSL.
