@@ -1,59 +1,22 @@
 \heading{PHỤ LỤC}
 
-Các phụ lục trích ý chính của mã nguồn và cấu hình; phần lược bỏ được đánh dấu bằng dấu ba chấm. Toàn bộ mã nguồn nằm trong kho mã ở Phụ lục A.
+Các phụ lục trích ý chính của cấu hình và mã nguồn; phần lược bỏ được đánh dấu bằng dấu ba chấm.
 
 \subsection*{Phụ lục A. Mã nguồn và dữ liệu}
 \addcontentsline{toc}{subsection}{Phụ lục A. Mã nguồn và dữ liệu}
 \textit{A.1. Kho mã}
 
-Toàn bộ cấu hình, mã mock, kiểm thử và bằng chứng của đề tài nằm trong kho mã công khai \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}. Nội dung báo cáo được đối chiếu với nhánh \texttt{docs/final\_thesis} tại commit \texttt{7e4aa42} (ngày 05/11/2026).
-% Commit 7e4aa42 chưa được push lên GitHub lúc viết; cập nhật hash sau lần push cuối cùng.
+Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đề tài được công khai tại \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}, kèm hướng dẫn dựng lại hệ thống. Môi trường cần kind, kubectl, Helm, Docker có Compose (khoảng 8 GB bộ nhớ), Node.js và Python có gói \texttt{mcp} phiên bản 1.30.0.
 
-\textit{A.2. Cấu trúc thư mục}
+\textit{A.2. Ghi chú về dữ liệu}
 
-{\singlespacing\renewcommand{\arraystretch}{1.25}\noindent
-\begin{tabularx}{\textwidth}{|p{3.4cm}|X|}\hline
-\textbf{Thư mục} & \textbf{Nội dung} \\ \hline
-\texttt{deploy/} & Manifest Kubernetes theo từng lớp: \texttt{agentgateway/} (Gateway, HTTPRoute, backend năm target), \texttt{keycloak/}, \texttt{auth/} (xác thực JWT), \texttt{identity/} (token exchange, Kubernetes RBAC), \texttt{network/} (NetworkPolicy), \texttt{cluster/} và \texttt{real-servers/} (radar, OpenMetadata, Spark History thật) \\ \hline
-\texttt{rbac/} & \texttt{tool-access.yaml}, nguồn sự thật duy nhất của quy tắc vai trò -- công cụ; ghi chép thí nghiệm về các chính sách chồng nhau \\ \hline
-\texttt{servers/} & Năm mock MCP server viết bằng FastMCP, mỗi thư mục mang đúng tên target; module chung \texttt{mockkit.py}, \texttt{Dockerfile} và \texttt{k8s/mocks.yaml} \\ \hline
-\texttt{tests/} & Kiểm thử đầu cuối \texttt{gateway\_smoke.py}, \texttt{agent\_rbac\_smoke.py}; kiểm thử tĩnh \texttt{static\_contract\_test.mjs}; ma trận kỳ vọng trong \texttt{expected/}; kịch bản \texttt{curl/} và \texttt{inspector/} \\ \hline
-\texttt{scripts/} & \texttt{up.sh} áp các lớp cấu hình theo thứ tự phụ thuộc; các script lấy token, sinh secret cho agent và chạy kiểm thử \\ \hline
-\texttt{ops/} & \texttt{up.ps1} và \texttt{down.ps1} cho Windows PowerShell \\ \hline
-\texttt{observability/} & Trường bổ sung cho access log (\texttt{access-logs/}); Alloy, Loki, Grafana và dashboard allow/deny (\texttt{grafana/}) \\ \hline
-\texttt{evidence/} & Đầu ra kiểm thử, trích đoạn log và số đo làm bằng chứng cho Chương 5 \\ \hline
-\texttt{docs/}, \texttt{Kt/} & Ghi chú thiết kế, kế hoạch triển khai, ma trận quyền của AI Agent; sơ đồ kiến trúc draw.io và mô tả luồng \\ \hline
-\texttt{report/} & Mã nguồn LaTeX của báo cáo này \\ \hline
-Thư mục gốc & \texttt{bootstrap.sh}, \texttt{run.sh}, \texttt{QUICKSTART.md}, \texttt{AGENTS.md} \\ \hline
-\end{tabularx}}
+Mọi dữ liệu trong đề tài là dữ liệu thử. Năm mock trả dữ liệu dựng sẵn cho đủ 21 công cụ; các công cụ mang tính ghi như \texttt{airflow\_trigger\_dag} hay \texttt{radar\_manage\_workload} chỉ trả kết quả mô phỏng, không gây tác dụng phụ. Cấu hình hiện tại trỏ ba target radar, OpenMetadata và Spark History sang phần mềm thật chạy cục bộ, nhưng các hệ thống này cũng chỉ chứa dữ liệu thử: radar đọc chính cụm kind của hệ thống, OpenMetadata có người dùng thử và một bảng mẫu do script cài đặt tạo ra, Spark History đọc ba event log mẫu của dự án gốc. Đề tài không dùng dữ liệu nghiệp vụ của đơn vị kiến tập.
 
-\textit{A.3. Chạy nhanh}
-
-Môi trường cần kind, kubectl, helm, Docker có Compose (khoảng 8 GB bộ nhớ), Node 22.19 trở lên, curl, jq và Python có gói \texttt{mcp==1.30.0}. Hướng dẫn đầy đủ nằm trong \texttt{QUICKSTART.md}.
-\begin{lstlisting}
-# once (Git Bash or WSL)
-./bootstrap.sh     # kind cluster, Gateway API CRDs, agentgateway v1.5.0, mock image
-# every start
-./run.sh           # K8s layers, real backends, Grafana, port-forwards 8080/8002
-.\ops\up.ps1       # Windows: scripts/up.sh + Grafana, run in WSL (Ubuntu)
-# checks
-./run.sh test                         # run.sh, then scripts/run-tests.sh
-bash scripts/run-agent-rbac-tests.sh  # tests/agent_rbac_smoke.py
-node tests/static_contract_test.mjs   # manifests vs. matrix, no cluster
-# cleanup
-.\ops\down.ps1     # delete the kind cluster
-\end{lstlisting}
-\texttt{ops/up.ps1} không khởi động ba backend thật. Khi agent mở phiên, gateway kết nối tới mọi target, nên chỉ cần một target ngừng là mọi agent đều lỗi; vì vậy script này chỉ dùng được khi các backend đó đã chạy sẵn. \texttt{ops/down.ps1} chỉ xóa cụm kind, còn hai nhóm container Docker Compose vẫn chạy.
-
-\textit{A.4. Ghi chú về dữ liệu}
-
-Mọi dữ liệu trong kho là dữ liệu thử. Năm mock trả dữ liệu dựng sẵn cho đủ 21 công cụ; các công cụ mang tính ghi như \texttt{airflow\_trigger\_dag} hay \texttt{radar\_manage\_workload} chỉ trả kết quả mô phỏng, không gây tác dụng phụ. Cấu hình hiện tại trỏ ba target radar, OpenMetadata và Spark History sang phần mềm thật chạy cục bộ, nhưng các hệ thống này cũng chỉ chứa dữ liệu thử: radar đọc chính cụm kind của hệ thống, OpenMetadata có người dùng thử và một bảng mẫu do script cài đặt tạo ra, Spark History đọc ba event log mẫu của dự án gốc. Kho không chứa dữ liệu nghiệp vụ của đơn vị kiến tập.
-
-Thư mục \texttt{evidence/} chỉ lưu đầu ra đã lược bỏ bí mật, không có client secret, access token hay claim nhạy cảm. Secret của từng agent do \texttt{scripts/\allowbreak bootstrap-agent-secrets.sh} sinh thẳng vào Kubernetes Secret mà không in ra màn hình; tệp cấu hình realm chỉ chứa biến giữ chỗ như \texttt{\$\{CLUSTER\_OBSERVER\_AGENT\_SECRET\}}. Tài khoản \texttt{admin}/\texttt{admin} của Keycloak và Grafana cùng mật khẩu \texttt{password} của người dùng thử là giá trị mặc định, chỉ dành cho môi trường thử cục bộ.
+Bằng chứng kiểm thử chỉ lưu đầu ra đã lược bỏ bí mật, không có client secret, access token hay claim nhạy cảm. Secret của từng agent được sinh thẳng vào Kubernetes Secret mà không in ra màn hình; cấu hình realm chỉ chứa biến giữ chỗ như \texttt{\$\{CLUSTER\_OBSERVER\_AGENT\_SECRET\}}. Tài khoản \texttt{admin}/\texttt{admin} của Keycloak và Grafana cùng mật khẩu \texttt{password} của người dùng thử là giá trị mặc định, chỉ dành cho môi trường thử cục bộ.
 
 \subsection*{Phụ lục B. Cấu hình gateway}
 \addcontentsline{toc}{subsection}{Phụ lục B. Cấu hình gateway}
-\textit{B.1. Backend hợp nhất năm target} (\texttt{deploy/\allowbreak agentgateway/\allowbreak AgentgatewayBackend.yaml})
+\textit{B.1. Backend hợp nhất năm target}
 \begin{lstlisting}
 kind: AgentgatewayBackend
 spec:
@@ -65,7 +28,7 @@ spec:
                protocol: StreamableHTTP}
     ...
 \end{lstlisting}
-\textit{B.2. Xác thực JWT và chuyển tiếp định danh} (\texttt{deploy/auth/jwt.yaml})
+\textit{B.2. Xác thực JWT và chuyển tiếp định danh}
 \begin{lstlisting}
 traffic:
   jwtAuthentication:
@@ -88,7 +51,7 @@ traffic:
 # second policy, on the backend: drop the token before it leaves the gateway
 backend: {transformation: {request: {remove: [x-caller-token]}}}
 \end{lstlisting}
-\textit{B.3. Phân quyền theo công cụ} (\texttt{rbac/tool-access.yaml})
+\textit{B.3. Phân quyền theo công cụ}
 \begin{lstlisting}
 backend:
   mcp:
@@ -104,7 +67,7 @@ backend:
            && mcp.tool.target == "radar" && mcp.tool.name == "manage_workload"'
         - 'has(jwt.roles) && "platform_admin" in jwt.roles'
 \end{lstlisting}
-\textit{B.4. Cô lập mạng} (\texttt{deploy/network/backends.yaml})
+\textit{B.4. Cô lập mạng}
 \begin{lstlisting}
 kind: NetworkPolicy
 metadata: {name: backends-from-gateway-only, namespace: mcp}
@@ -119,7 +82,7 @@ spec:
 
 \subsection*{Phụ lục C. Mock MCP server}
 \addcontentsline{toc}{subsection}{Phụ lục C. Mock MCP server}
-\textit{C.1. Bộ khung chung} (\texttt{servers/mockkit.py})
+\textit{C.1. Bộ khung chung}
 \begin{lstlisting}[language=Python]
 def new_server(name):
     # stateless + JSON: any gateway replica can serve any request
@@ -141,7 +104,7 @@ def seen(ctx, target, tool, args):
     print(json.dumps(record))
     return record
 \end{lstlisting}
-\textit{C.2. Một công cụ mẫu} (\texttt{servers/dbt/server.py})
+\textit{C.2. Một công cụ mẫu}
 \begin{lstlisting}[language=Python]
 @mcp.tool()
 def test(ctx, selector=""):
@@ -179,7 +142,7 @@ airflow & pause\_dag & Ghi & Tạm dừng DAG \\ \hline
 
 \subsection*{Phụ lục D. Danh tính AI Agent}
 \addcontentsline{toc}{subsection}{Phụ lục D. Danh tính AI Agent}
-\textit{D.1. Định nghĩa một client agent} (\texttt{deploy/keycloak/realm-config.yaml})
+\textit{D.1. Định nghĩa một client agent}
 \begin{lstlisting}
 {"clientId": "cluster-observer-agent",
  "publicClient": false, "serviceAccountsEnabled": true,
@@ -191,7 +154,7 @@ airflow & pause\_dag & Ghi & Tạm dừng DAG \\ \hline
 "users": [{"serviceAccountClientId": "cluster-observer-agent",
            "clientRoles": {"mcp-gateway": ["kube_viewer"]}}, ...]
 \end{lstlisting}
-\textit{D.2. Nạp agent vào realm} (\texttt{deploy/keycloak/setup-agents.sh})
+\textit{D.2. Nạp agent vào realm}
 \begin{lstlisting}[language=bash]
 for cid in <clients with a secret>; do   # replace placeholders with real secrets
   sec=$(kubectl get secret agent-client-secrets -o jsonpath={.data.$cid} | base64 -d)
@@ -204,7 +167,7 @@ kcadm.sh add-roles --uusername service-account-$cid --rolename $role
 
 \subsection*{Phụ lục E. Tự động hóa triển khai}
 \addcontentsline{toc}{subsection}{Phụ lục E. Tự động hóa triển khai}
-\textit{E.1. Lớp bọc PowerShell} (\texttt{ops/up.ps1})
+\textit{E.1. Lớp bọc PowerShell}
 \begin{lstlisting}
 $repoDir = (& wsl.exe -d $Distro -- wslpath -u $PSScriptRoot).Trim()
 $command = "cd '$repoDir' && bash scripts/up.sh && bash observability/grafana/up.sh"
@@ -212,7 +175,7 @@ $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
 & wsl.exe -d $Distro -- bash -lc $command
 if ($LASTEXITCODE -ne 0) { throw "Startup failed after $($stopwatch.Elapsed)" }
 \end{lstlisting}
-\textit{E.2. Áp các lớp cấu hình} (\texttt{scripts/up.sh}, rút gọn)
+\textit{E.2. Áp các lớp cấu hình}
 \begin{lstlisting}[language=bash]
 set -euo pipefail
 kubectl apply -f deploy/agentgateway/Gateway.yaml -f servers/k8s/mocks.yaml ...
@@ -225,7 +188,7 @@ kubectl apply -f rbac/tool-access.yaml
 kubectl apply -f deploy/network/backends.yaml
 kubectl apply -f observability/access-logs/policy.yaml
 \end{lstlisting}
-\textit{E.3. Script dọn dẹp} (\texttt{ops/down.ps1})
+\textit{E.3. Script dọn dẹp}
 \begin{lstlisting}
 & kind delete cluster --name $ClusterName
 if ($LASTEXITCODE -ne 0) { Write-Error "Failed to delete ..."; exit $LASTEXITCODE }
@@ -233,7 +196,7 @@ if ($LASTEXITCODE -ne 0) { Write-Error "Failed to delete ..."; exit $LASTEXITCOD
 
 \subsection*{Phụ lục F. Giám sát allow/deny}
 \addcontentsline{toc}{subsection}{Phụ lục F. Giám sát allow/deny}
-\textit{F.1. Bổ sung trường vào access log} (\texttt{observability/\allowbreak access-logs/\allowbreak policy.yaml})
+\textit{F.1. Bổ sung trường vào access log}
 \begin{lstlisting}
 frontend:
   accessLog:
@@ -246,7 +209,7 @@ frontend:
       - {name: mcp_target, expression: 'has(mcp.tool.target) ? mcp.tool.target : ""'}
       - {name: mcp_tool,   expression: 'has(mcp.tool.name) ? mcp.tool.name : ""'}
 \end{lstlisting}
-\textit{F.2. Truy vấn LogQL đếm deny theo vai trò} (\texttt{observability/\allowbreak grafana/\allowbreak dashboard.yaml})
+\textit{F.2. Truy vấn LogQL đếm deny theo vai trò}
 \begin{lstlisting}
 sum by (roles) (count_over_time(
   {namespace="agentgateway-system"}
