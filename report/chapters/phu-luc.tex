@@ -140,7 +140,8 @@ airflow & pause\_dag & Ghi & Tạm dừng DAG \\ \hline
  "publicClient": false, "serviceAccountsEnabled": true,
  "standardFlowEnabled": false, "directAccessGrantsEnabled": false,
  "secret": "${CLUSTER_OBSERVER_AGENT_SECRET}",
- "protocolMappers": [ audience mcp-gateway, client roles -> claim "roles" ]}
+ "protocolMappers": [ audience mcp-gateway, client roles -> claim "roles",
+                      hardcoded claim kube_group = "kube_viewer" ]}
 ...
 "users": [{"serviceAccountClientId": "cluster-observer-agent",
            "clientRoles": {"mcp-gateway": ["kube_viewer"]}}, ...]
@@ -158,23 +159,28 @@ kcadm.sh add-roles --uusername service-account-$cid --rolename $role
 
 \subsection*{Phụ lục E. Tự động hóa triển khai}
 \addcontentsline{toc}{subsection}{Phụ lục E. Tự động hóa triển khai}
-\textit{E.1. Script khởi động} (\texttt{ops/up.ps1})
+\textit{E.1. Lớp bọc PowerShell} (\texttt{ops/up.ps1})
 \begin{lstlisting}
-function Run { & $args[0] $args[1..]; if ($LASTEXITCODE -ne 0) { Die "..." } }
-function WaitFor($what, $timeoutSec, $check) {      # wait with a deadline
-    while (-not (& $check)) { if (past deadline) { Die "timed out waiting for $what" } }
-}
-function Forward($port, ...) {                       # only when the port is free
-    if ((HttpCode "http://localhost:$port/") -ne 0) { "already answers" }
-    else { Start-Process kubectl "port-forward ..." -WindowStyle Hidden }
-}
-Step "0. Preflight"     # tools, Docker, context, CRDs, mock image
-Step "1. Kubernetes layers"; Run bash scripts/up.sh
-Step "2. Real radar";   Run helm upgrade -i radar-real ...
-...
-Step "6. Gateway"; WaitFor "the gateway ..." 600 { GatewayReady }
+$repoDir = (& wsl.exe -d $Distro -- wslpath -u $PSScriptRoot).Trim()
+$command = "cd '$repoDir' && bash scripts/up.sh && bash observability/grafana/up.sh"
+$stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+& wsl.exe -d $Distro -- bash -lc $command
+if ($LASTEXITCODE -ne 0) { throw "Startup failed after $($stopwatch.Elapsed)" }
 \end{lstlisting}
-\textit{E.2. Script dọn dẹp} (\texttt{ops/down.ps1})
+\textit{E.2. Áp các lớp cấu hình} (\texttt{scripts/up.sh}, rút gọn)
+\begin{lstlisting}[language=bash]
+set -euo pipefail
+kubectl apply -f deploy/agentgateway/Gateway.yaml -f servers/k8s/mocks.yaml ...
+kubectl apply -f deploy/keycloak/keycloak.yaml
+# setup-realm.sh rebuilds the realm, so only run it when the realm is missing
+kcadm.sh get realms/mcp || bash deploy/keycloak/setup-realm.sh
+bash scripts/bootstrap-agent-secrets.sh && bash deploy/keycloak/setup-agents.sh
+kubectl apply -f deploy/auth/jwt.yaml -f deploy/identity/openmetadata.yaml
+kubectl apply -f rbac/tool-access.yaml
+kubectl apply -f deploy/network/backends.yaml
+kubectl apply -f observability/access-logs/policy.yaml
+\end{lstlisting}
+\textit{E.3. Script dọn dẹp} (\texttt{ops/down.ps1})
 \begin{lstlisting}
 & kind delete cluster --name $ClusterName
 if ($LASTEXITCODE -ne 0) { Write-Error "Failed to delete ..."; exit $LASTEXITCODE }
@@ -191,6 +197,7 @@ frontend:
       - {name: user,       expression: 'has(jwt.preferred_username) ? ... : "anonymous"'}
       - {name: agent_id,   expression: 'has(jwt.azp) ? jwt.azp : ""'}
       - {name: roles,      expression: 'has(jwt.roles) ? jwt.roles : []'}
+      - {name: mcp_method, expression: 'has(mcp.methodName) ? mcp.methodName : ""'}
       - {name: mcp_target, expression: 'has(mcp.tool.target) ? mcp.tool.target : ""'}
       - {name: mcp_tool,   expression: 'has(mcp.tool.name) ? mcp.tool.name : ""'}
 \end{lstlisting}
