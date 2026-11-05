@@ -1,19 +1,127 @@
-@misc{mcp_spec,
-  author = {{Anthropic}}, title = {Model Context Protocol Specification}, year = {2025},
-  url = {https://modelcontextprotocol.io/specification}}
-@misc{gatewaybench,
-  title = {GatewayBench: Unified Capability and Security Evaluation of MCP Gateways}, year = {2026},
-  howpublished = {arXiv:2610.23449}, url = {https://arxiv.org/abs/2610.23449}}
-@misc{mcpguard,
-  title = {MCP-Guard: A Defense Framework for Model Context Protocol Integrity in Large Language Model Applications},
-  year = {2025}, howpublished = {arXiv:2508.10991}, url = {https://arxiv.org/abs/2508.10991}}
-@misc{securemcpgw,
-  title = {Simplified and Secure MCP Gateways for Enterprise AI Integration}, year = {2025},
-  howpublished = {arXiv:2504.19997}, url = {https://arxiv.org/abs/2504.19997}}
-@misc{securingmcp,
-  title = {Securing the Model Context Protocol (MCP): Risks, Controls, and Governance}, year = {2025},
-  howpublished = {arXiv:2511.20920}, url = {https://arxiv.org/abs/2511.20920}}
-@misc{rfc8693,
-  author = {Jones, M. and Nadalin, A. and Campbell, B. and Bradley, J. and Mortimore, C.},
-  title = {OAuth 2.0 Token Exchange (RFC 8693)}, year = {2020}, publisher = {IETF},
+@online{mcp_spec,
+  author = {{Model Context Protocol}}, title = {{Model Context Protocol} Specification (2025-03-26)},
+  year = {2025}, url = {https://modelcontextprotocol.io/specification/2025-03-26}}
+
+@online{gatewaybench,
+  author = {Zheng, Yitian and Chen, Zhaorun and Li, Haoyu and Li, Bo},
+  title = {{GatewayBench}: Unified Capability and Security Evaluation Platform for {MCP} Gateways},
+  year = {2026}, eprint = {2610.23449}, eprinttype = {arxiv}, url = {https://arxiv.org/abs/2610.23449}}
+
+@online{mcpguard,
+  author = {Xing, Wenpeng and Qi, Zhonghao and Qin, Yupeng and Li, Yilin and Chang, Caini and Yu, Jiahui and Lin, Changting and Xie, Zhenzhen and Han, Meng},
+  title = {{MCP-Guard}: A Multi-Stage Defense-in-Depth Framework for Securing {Model Context Protocol} in {Agentic AI}},
+  year = {2025}, eprint = {2508.10991}, eprinttype = {arxiv}, url = {https://arxiv.org/abs/2508.10991}}
+
+@online{securemcpgw,
+  author = {Brett, Ivo},
+  title = {Simplified and Secure {MCP} Gateways for Enterprise {AI} Integration},
+  year = {2025}, eprint = {2504.19997}, eprinttype = {arxiv}, url = {https://arxiv.org/abs/2504.19997}}
+
+@online{securingmcp,
+  author = {Errico, Herman and Ngiam, Jiquan and Sojan, Shanita},
+  title = {Securing the {Model Context Protocol} ({MCP}): Risks, Controls, and Governance},
+  year = {2025}, eprint = {2511.20920}, eprinttype = {arxiv}, url = {https://arxiv.org/abs/2511.20920}}
+
+@online{breakingmcp,
+  author = {Maloyan, Narek and Namiot, Dmitry},
+  title = {Breaking the Protocol: Security Analysis of the {Model Context Protocol} Specification and Prompt Injection Vulnerabilities in Tool-Integrated {LLM} Agents},
+  year = {2026}, eprint = {2601.17549}, eprinttype = {arxiv}, url = {https://arxiv.org/abs/2601.17549}}
+
+@techreport{rfc6749,
+  author = {Hardt, Dick}, title = {The {OAuth} 2.0 Authorization Framework},
+  type = {RFC}, number = {6749}, institution = {IETF}, year = {2012},
+  url = {https://www.rfc-editor.org/rfc/rfc6749}}
+
+@techreport{rfc7519,
+  author = {Jones, Michael B. and Bradley, John and Sakimura, Nat},
+  title = {{JSON Web Token} ({JWT})}, type = {RFC}, number = {7519}, institution = {IETF}, year = {2015},
+  url = {https://www.rfc-editor.org/rfc/rfc7519}}
+
+@techreport{rfc8693,
+  author = {Jones, Michael B. and Nadalin, Anthony and Campbell, Brian and Bradley, John and Mortimore, Chuck},
+  title = {{OAuth} 2.0 Token Exchange}, type = {RFC}, number = {8693}, institution = {IETF}, year = {2020},
   url = {https://www.rfc-editor.org/rfc/rfc8693}}
+
+@online{oidc_core,
+  author = {Sakimura, Nat and Bradley, John and Jones, Michael B. and de Medeiros, Breno and Mortimore, Chuck},
+  title = {{OpenID Connect} Core 1.0}, organization = {OpenID Foundation}, year = {2014},
+  url = {https://openid.net/specs/openid-connect-core-1_0.html}}
+
+@article{sandhu1996rbac,
+  author = {Sandhu, Ravi S. and Coyne, Edward J. and Feinstein, Hal L. and Youman, Charles E.},
+  title = {Role-Based Access Control Models}, journal = {Computer}, volume = {29}, number = {2},
+  pages = {38--47}, year = {1996}, doi = {10.1109/2.485845}}
+
+@article{saltzer1975protection,
+  author = {Saltzer, Jerome H. and Schroeder, Michael D.},
+  title = {The Protection of Information in Computer Systems}, journal = {Proceedings of the IEEE},
+  volume = {63}, number = {9}, pages = {1278--1308}, year = {1975}, doi = {10.1109/PROC.1975.9939}}
+
+@techreport{nist80207,
+  author = {Rose, Scott and Borchert, Oliver and Mitchell, Stu and Connelly, Sean},
+  title = {{Zero Trust} Architecture}, type = {NIST Special Publication}, number = {800-207},
+  institution = {National Institute of Standards and Technology}, year = {2020}, doi = {10.6028/NIST.SP.800-207}}
+
+@online{gatewayapi,
+  author = {{Kubernetes SIG Network}}, title = {{Gateway API}}, year = {2025},
+  url = {https://gateway-api.sigs.k8s.io/}}
+
+@online{k8s_netpol,
+  author = {{The Kubernetes Authors}}, title = {Network Policies}, year = {2025},
+  url = {https://kubernetes.io/docs/concepts/services-networking/network-policies/}}
+
+@online{agentgateway,
+  author = {{agentgateway}}, title = {{agentgateway} Documentation}, year = {2025},
+  url = {https://agentgateway.dev/docs/}}
+
+@online{keycloak,
+  author = {{Keycloak}}, title = {{Keycloak} Server Administration Guide}, year = {2025},
+  url = {https://www.keycloak.org/docs/latest/server_admin/}}
+
+@online{cel_spec,
+  author = {{Google}}, title = {{Common Expression Language} ({CEL}) Specification}, year = {2025},
+  url = {https://github.com/google/cel-spec}}
+
+@book{morris2020iac,
+  author = {Morris, Kief}, title = {{Infrastructure as Code}: Dynamic Systems for the Cloud Age},
+  edition = {2}, publisher = {O'Reilly Media}, year = {2020}}
+
+@online{fowler_mocks,
+  author = {Fowler, Martin}, title = {Mocks Aren't Stubs}, year = {2007},
+  url = {https://martinfowler.com/articles/mocksArentStubs.html}}
+
+@book{majors2022observability,
+  author = {Majors, Charity and Fong-Jones, Liz and Miranda, George},
+  title = {Observability Engineering}, publisher = {O'Reilly Media}, year = {2022}}
+
+@online{k8s_overview,
+  author = {{The Kubernetes Authors}}, title = {Overview of {Kubernetes}}, year = {2025},
+  url = {https://kubernetes.io/docs/concepts/overview/}}
+
+@online{k8s_crd,
+  author = {{The Kubernetes Authors}}, title = {Custom Resources}, year = {2025},
+  url = {https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/}}
+
+@online{kind_docs,
+  author = {{The Kubernetes Authors}}, title = {kind: {Kubernetes} in {Docker}}, year = {2025},
+  url = {https://kind.sigs.k8s.io/}}
+
+@online{helm_docs,
+  author = {{The Helm Authors}}, title = {{Helm} Documentation}, year = {2025},
+  url = {https://helm.sh/docs/}}
+
+@online{calico_docs,
+  author = {{Tigera}}, title = {{Calico} Documentation}, year = {2025},
+  url = {https://docs.tigera.io/calico/latest/about/}}
+
+@online{alloy_docs,
+  author = {{Grafana Labs}}, title = {{Grafana Alloy} Documentation}, year = {2025},
+  url = {https://grafana.com/docs/alloy/latest/}}
+
+@online{grafana_docs,
+  author = {{Grafana Labs}}, title = {{Grafana} Documentation}, year = {2025},
+  url = {https://grafana.com/docs/grafana/latest/}}
+
+@online{loki_docs,
+  author = {{Grafana Labs}}, title = {{Grafana Loki} Documentation}, year = {2025},
+  url = {https://grafana.com/docs/loki/latest/}}
