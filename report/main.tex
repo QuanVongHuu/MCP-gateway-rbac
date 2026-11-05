@@ -1,7 +1,8 @@
 % !TEX program = xelatex
 % Báo cáo kiến tập - Khoa Hệ thống thông tin, UEL
 % Biên dịch: xelatex main.tex (chạy 2 lần để cập nhật mục lục)
-\documentclass[13pt,a4paper]{extarticle}
+\documentclass[a4paper]{article}
+\usepackage[fontsize=13pt]{scrextend} % extarticle không có cỡ 13pt; scrextend đặt cỡ chữ bất kỳ
 
 \usepackage{fontspec}
 \setmainfont{Times New Roman}
@@ -20,6 +21,12 @@
   quyetdinh/.style={draw,diamond,aspect=2.2,align=center,font=\small,inner sep=1pt},
   mui/.style={-{Stealth[length=2mm]},thick},
   nhan/.style={font=\footnotesize,align=center}}
+% Các hình TikZ được dựng theo tọa độ cm với chữ cỡ 10pt. Thân bài 13pt làm chữ trong hình
+% to hơn khung và chồng lên nhau, nên bên trong mỗi hình dùng lại bộ cỡ chữ của 10pt.
+\tikzset{every picture/.append style={execute at begin picture={%
+  \def\small{\fontsize{9}{11}\selectfont}\def\footnotesize{\fontsize{8}{9.5}\selectfont}%
+  \def\scriptsize{\fontsize{7}{8}\selectfont}\def\tiny{\fontsize{5}{6}\selectfont}%
+  \fontsize{10}{12}\selectfont}}}
 \usepackage{listings}
 \lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,columns=fullflexible,showstringspaces=false,upquote=true}
 \usepackage[hidelinks,unicode]{hyperref}
@@ -29,18 +36,25 @@
 \newcommand{\tennganh}{HỆ THỐNG THÔNG TIN QUẢN LÝ}
 \newcommand{\tenchuyennganh}{KINH DOANH SỐ VÀ TRÍ TUỆ NHÂN TẠO}
 \newcommand{\tendetai}{TRIỂN KHAI TỰ ĐỘNG HÓA, MÔ PHỎNG MCP SERVER VÀ GIÁM SÁT PHÂN QUYỀN AI AGENT QUA MCP GATEWAY}
-\newcommand{\gvhd}{[Học hàm, học vị, họ tên GVHD]}
-\newcommand{\svth}{[Họ tên sinh viên]}
-\newcommand{\mssv}{[MSSV]}
+\newcommand{\gvhd}{PGS.TS. Lê Hoành Sử}
+% Nhóm hai sinh viên: bìa dùng từng người (A, B); \svth và \mssv ghép cả hai cho các phiếu
+\newcommand{\svthA}{[Họ tên Quân]}
+\newcommand{\mssvA}{[MSSV Quân]}
+\newcommand{\svthB}{[Họ tên Huy]}
+\newcommand{\mssvB}{[MSSV Huy]}
+\newcommand{\svth}{\svthA{} -- \svthB}
+\newcommand{\mssv}{\mssvA{} -- \mssvB}
 \newcommand{\lop}{[Lớp]}
 \newcommand{\thoigian}{TP.HCM, THÁNG ../....}
-\newcommand{\coquan}{Công ty Cổ phần Tài chính Tổng hợp VietCredit}
-\newcommand{\mentor}{[Họ tên người hướng dẫn tại cơ quan]}
+\newcommand{\coquan}{Công ty Tài chính Tổng hợp cổ phần Tín Việt (VietCredit)}
+\newcommand{\mentor}{Đinh Văn An}
 
 % ---------- Trình bày chung ----------
 \onehalfspacing
 \setlength{\parindent}{1.27cm}
 \setlength{\parskip}{6pt}
+\setlength{\emergencystretch}{3em} % cho phép giãn khoảng trắng để tên dài trong \texttt không tràn lề
+\tolerance=1000
 \graphicspath{{images/}}
 \renewcommand{\contentsname}{MỤC LỤC}
 \renewcommand{\listfigurename}{DANH MỤC HÌNH ẢNH}
@@ -83,6 +97,7 @@
 \renewcommand*\l@subsubsection{\@dottedtocline{3}{1.5cm}{2.6em}}
 \renewcommand*\l@paragraph{\@dottedtocline{4}{3cm}{3.4em}}
 \newcommand*\toclevel@phan{1}
+\renewcommand\@pnumwidth{2.2em} % đủ chỗ cho số trang La Mã như xviii
 \makeatother
 
 % ---------- Tiện ích giữ chỗ (xoá khi viết nội dung thật) ----------

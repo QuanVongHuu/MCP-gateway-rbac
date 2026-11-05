@@ -1,12 +1,126 @@
 \chuong{KIỂM CHỨNG PROOF OF CONCEPT}
+% emergencystretch cục bộ: tránh tràn lề ở các đoạn có đường dẫn \texttt dài
+\begingroup\setlength{\emergencystretch}{2em}
 \subsection{Kịch bản kiểm chứng}
-\bang{Ánh xạ yêu cầu và kịch bản kiểm thử}{tab:scenarios}{3}{\textbf{Yêu cầu} & \textbf{Kịch bản} & \textbf{Bằng chứng}}
+
+Mỗi yêu cầu ở Bảng~\ref{tab:yeucau} được gắn với ít nhất một kịch bản có đầu ra kiểm tra được. Theo phương pháp đã nêu ở Chương 2, các kịch bản chia làm hai mức. Ở mức tĩnh, \texttt{tests/\allowbreak static\_contract\_test.mjs} chỉ đọc file trong kho mã để đối chiếu ma trận kỳ vọng với danh mục công cụ của bộ kiểm thử, với chính sách phân quyền và với cấu hình realm Keycloak, nên chạy được khi chưa có cụm. Ở mức đầu cuối, \texttt{tests/\allowbreak gateway\_smoke.py} và \texttt{tests/\allowbreak agent\_rbac\_smoke.py} dùng MCP Python SDK 1.30.0 gọi thật vào \texttt{http://127.0.0.1:8080/mcp}. Hai script này kiểm tra bằng lệnh \texttt{assert} và dừng ở phép so sánh sai đầu tiên, vì vậy dòng \texttt{...=PASS} cuối đầu ra chỉ xuất hiện khi mọi phép so sánh trước nó đều đúng. Những kiểm tra không có script riêng, gồm thăm dò NetworkPolicy, đọc access log và metrics, được nhóm chạy thủ công rồi ghi kết quả vào thư mục \texttt{evidence/}.
+
+Theo \texttt{evidence/\allowbreak environment-setup.txt} (xác minh ngày 29/10/2026), môi trường thử gồm Ubuntu 26.04.1 LTS trên WSL2, Docker Desktop 29.6.2, kind v0.33.0, Helm v3.22.1 và cụm \texttt{kind-mcp} một node chạy Kubernetes v1.37.0, dùng Calico v3.33.0 làm CNI. Gateway là agentgateway v1.5.0; token do Keycloak 26.2.5 cấp. Bằng chứng được ghi theo từng đợt: ngày 08/10/2026 cho danh mục 21 công cụ và thí nghiệm ẩn công cụ, ngày 29/10/2026 cho phân quyền theo agent, cô lập mạng và kiểm toán, rồi ngày 05/11/2026 cho dashboard và thời gian khởi động. Đối chiếu với lịch sử commit, mọi đợt đều chạy trên cấu hình mà năm target của gateway cùng trỏ tới mock; độ lệch giữa cấu hình đó và cấu hình hiện tại trong kho mã được phân tích ở phần Hạn chế. Bảng~\ref{tab:scenarios} ánh xạ từng mã yêu cầu tới kịch bản và nơi lưu bằng chứng.
+
+\begin{table}[H]\centering\caption{Ánh xạ yêu cầu và kịch bản kiểm thử}\label{tab:scenarios}
+{\singlespacing\renewcommand{\arraystretch}{1.25}\small
+\begin{tabularx}{\textwidth}{|c|X|>{\raggedright\arraybackslash}p{6cm}|}\hline
+\textbf{Mã} & \textbf{Kịch bản} & \textbf{Script và bằng chứng} \\ \hline
+F1 & Client chỉ được cấu hình địa chỉ \texttt{/mcp} của gateway; khởi tạo phiên, lấy danh mục rồi gọi lần lượt 21 công cụ & \texttt{tests/\allowbreak gateway\_smoke.py}; \texttt{evidence/\allowbreak gateway-smoke.txt}, \texttt{evidence/\allowbreak access-logs-allowed.txt} \\ \hline
+F2 & So danh mục trả về với 21 tên dạng \texttt{\{target\}\_\{tool\}}; đối chiếu tĩnh danh mục của bộ kiểm thử với ma trận kỳ vọng & \texttt{tests/\allowbreak gateway\_smoke.py}, \texttt{tests/\allowbreak static\_contract\_test.mjs}; \texttt{evidence/\allowbreak gateway-smoke.txt} \\ \hline
+F3 & Mỗi agent xin token rồi so \texttt{tools/list} với danh sách kỳ vọng của nó; tạm rút quyền một công cụ để xem danh mục thay đổi & \texttt{tests/\allowbreak agent\_rbac\_smoke.py}, \texttt{tests/\allowbreak expected/\allowbreak agent-tool-access.json}; \texttt{evidence/\allowbreak agent-rbac-smoke.txt}, \texttt{evidence/\allowbreak tool-denial.txt} \\ \hline
+S1 & Agent không có vai trò; mỗi agent gọi một công cụ ngoài quyền; yêu cầu thiếu token hoặc mang token không phải JWT & \texttt{tests/\allowbreak agent\_rbac\_smoke.py}; \texttt{tests/\allowbreak curl/\allowbreak run.sh} (chưa lưu đầu ra) \\ \hline
+S2 & Kiểm tra claim \texttt{aud}, \texttt{azp}, \texttt{roles} trong token; so danh mục của 10 agent, trong đó có một agent hai vai trò & \texttt{tests/\allowbreak agent\_rbac\_smoke.py}, \texttt{tests/\allowbreak static\_contract\_test.mjs}; \texttt{evidence/\allowbreak agent-rbac-smoke.txt} \\ \hline
+S3 & Mock báo lại header nhận được qua \texttt{seen\_by\_mock}, gồm danh tính và cờ \texttt{authorization\_present}; client gửi kèm header danh tính giả & \texttt{servers/\allowbreak mockkit.py}, \texttt{tests/\allowbreak agent\_rbac\_smoke.py}; \texttt{tests/\allowbreak curl/\allowbreak run.sh} (chưa lưu đầu ra) \\ \hline
+S4 & Mở kết nối tới \texttt{radar.mcp:80} từ một pod ở namespace \texttt{default} và từ một pod ở \texttt{agentgateway-system} & \texttt{deploy/\allowbreak network/\allowbreak backends.yaml}; \texttt{evidence/\allowbreak agent-rbac-smoke.txt} (mục NetworkPolicy) \\ \hline
+S5 & Đọc access log của lệnh được phép và lệnh bị chặn, kiểm tra các trường agent, vai trò, target, công cụ & \texttt{observability/\allowbreak access-logs/\allowbreak policy.yaml}; \texttt{evidence/\allowbreak tool-denial-access-log.txt}, \texttt{evidence/\allowbreak agent-rbac-smoke.txt} (mục Audit) \\ \hline
+O1 & Đo thời gian chuỗi lệnh khởi động khi cụm và image đã có sẵn & \texttt{evidence/\allowbreak ops-up-timing.txt}; Bảng~\ref{tab:uptime} \\ \hline
+O2 & Chạy kiểm thử phân quyền theo agent rồi đối chiếu số liệu dashboard với ma trận & \texttt{observability/\allowbreak grafana/\allowbreak dashboard.yaml}; Hình~\ref{fig:allowdeny} \\ \hline
+\end{tabularx}}\end{table}
+
 \subsection{Kết quả chức năng}
-\todo{21/21 tool gọi được qua /mcp (evidence/gateway-smoke.txt).}
+
+Kiểm thử danh mục đạt trọn vẹn: gateway trả về 21 công cụ và cả 21 lệnh gọi đều kết thúc với \texttt{isError=False} (\texttt{evidence/\allowbreak gateway-smoke.txt}). Script so toàn bộ danh sách tên đã sắp xếp với các khóa của \texttt{CASES} thay vì đếm số lượng, nên một công cụ thiếu, thừa hay sai tiền tố đều làm lần chạy thất bại. Đoạn đầu ra dưới đây đã lược bớt phần giữa.
+
+\begin{lstlisting}
+tool_count=21
+airflow_get_dag_run
+airflow_get_task_logs
+...
+spark-history_get_stage
+spark-history_list_applications
+airflow_get_dag_run: isError=False
+airflow_get_task_logs: isError=False
+...
+spark-history_list_applications: isError=False
+gateway_smoke=PASS
+\end{lstlisting}
+
+Mọi tên trong danh mục hợp nhất đều mang tiền tố target, và số công cụ theo target khớp Bảng~\ref{tab:tools}: radar 4, spark-history 3, openmetadata 4, dbt 5, airflow 5. Access log của cùng lượt chạy (\texttt{evidence/\allowbreak access-logs-allowed.txt}) cho thấy chiều ngược lại của việc đặt tiền tố. Mọi yêu cầu đều đi vào route \texttt{mcp/mcp} qua một địa chỉ \texttt{/mcp}, và gateway tách tên đầy đủ trở lại thành target và tên gốc, chẳng hạn \texttt{mcp.target=spark-history} đi cùng \texttt{gen\_ai.tool.name=get\_stage}. Hai trường này cũng là đầu vào của quy tắc phân quyền, nên F1 và F2 phải đúng thì kết quả phân quyền ở mục sau mới có nghĩa.
+
+Con số 21/21 có hai giới hạn về phạm vi. Script \texttt{gateway\_smoke.py} không gửi token, và access log của lượt chạy ngày 08/10/2026 ghi \texttt{user="anonymous"}: lượt này thuộc giai đoạn chốt danh mục, trước khi bật xác thực JWT. Với \texttt{mode: Strict} trong cấu hình hiện tại, yêu cầu không token bị từ chối, nên script không chạy lại được nguyên trạng. Sau khi bật JWT, danh mục 21 công cụ được xác nhận lại qua \texttt{platform-admin-agent} với danh sách khớp từng tên, nhưng agent này chỉ gọi một công cụ là \texttt{airflow\_get\_dag\_run}; đủ 21 lệnh gọi có xác thực chưa được chạy lại. Giới hạn còn lại nằm ở chính danh mục: hiện không có hai công cụ nào trùng tên gốc, nên lượt chạy chứng minh tiền tố được thêm nhất quán, còn khả năng chống trùng tên chưa bị thử bằng một cặp trùng thật.
+
+Ở phía backend, mock xác nhận nhận được danh tính do gateway đặt. Sau mỗi lệnh được phép, script kiểm thử phân quyền đọc trường \texttt{seen\_by\_mock} trong kết quả và so \texttt{x\_agent\_id} cùng \texttt{x\_forwarded\_user} với client ID của agent. Cả chín agent có lệnh được phép đều qua phép so này (\texttt{evidence/\allowbreak agent-rbac-smoke.txt}). Bản script hiện tại đã đổi giá trị kỳ vọng của \texttt{x\_forwarded\_user} thành \texttt{service-\allowbreak account-\allowbreak <client\_id>}, khớp với cấu hình hiện tại vốn lấy giá trị này từ claim \texttt{preferred\_username}, và bản này chưa có đầu ra được lưu.
+
 \subsection{Kết quả phân quyền}
-\bang{Kết quả kiểm thử phân quyền theo agent}{tab:rbac}{4}{\textbf{Agent} & \textbf{Role} & \textbf{Allow (kỳ vọng/thực tế)} & \textbf{Deny (kỳ vọng/thực tế)}}
+
+Cả mười agent đều đạt: đầu ra ngày 29/10/2026 trong \texttt{evidence/\allowbreak agent-rbac-smoke.txt} kết thúc bằng dòng \texttt{agent\_rbac\_smoke=PASS}. Với mỗi agent, script xin token bằng luồng client credentials, kiểm tra claim, so \texttt{tools/list} với danh sách kỳ vọng, rồi gọi một công cụ được phép và một công cụ bị cấm. Bảng~\ref{tab:rbac} đặt số kỳ vọng, tính từ \texttt{tests/\allowbreak expected/\allowbreak agent-tool-access.json}, cạnh số thực tế. Cột ``được phép'' là số công cụ có trong \texttt{tools/list} của agent, còn cột ``bị chặn'' là phần còn lại của danh mục 21 công cụ, tức các công cụ bị ẩn. Do script so khớp từng tên chứ không đếm, việc hai cột thực tế trùng kỳ vọng có nghĩa là cả 210 ô của ma trận (10 agent nhân 21 công cụ) đều đúng ở bước khám phá.
+
+\begin{table}[H]\centering\caption{Kết quả kiểm thử phân quyền theo agent}\label{tab:rbac}
+{\singlespacing\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{|p{4cm}|X|>{\centering\arraybackslash}p{2.6cm}|>{\centering\arraybackslash}p{2.6cm}|}\hline
+\textbf{Agent} & \textbf{Vai trò} & \textbf{Được phép} (kỳ vọng/ thực tế) & \textbf{Bị chặn} (kỳ vọng/ thực tế) \\ \hline
+cluster-observer & kube\_viewer & 3/3 & 18/18 \\ \hline
+incident-response & kube\_operator, spark\_viewer & 7/7 & 14/14 \\ \hline
+spark-diagnostic & spark\_viewer & 3/3 & 18/18 \\ \hline
+metadata-discovery & metadata\_viewer & 3/3 & 18/18 \\ \hline
+metadata-steward & metadata\_editor & 4/4 & 17/17 \\ \hline
+dbt-quality & dbt\_operator & 5/5 & 16/16 \\ \hline
+airflow-monitor & airflow\_viewer & 3/3 & 18/18 \\ \hline
+airflow-operator & airflow\_operator & 5/5 & 16/16 \\ \hline
+platform-admin & platform\_admin & 21/21 & 0/0 \\ \hline
+no-access & (không có) & 0/0 & 21/21 \\ \hline
+\textbf{Tổng (210 ô)} & & \textbf{54/54} & \textbf{156/156} \\ \hline
+\end{tabularx}}\end{table}
+
+Ở bước gọi, độ phủ hẹp hơn nhiều. Script lấy công cụ đầu tiên theo thứ tự chữ cái trong danh sách được phép làm lệnh cho phép, và công cụ đầu tiên của danh mục không thuộc quyền agent làm lệnh bị chặn. Mười agent vì thế sinh ra 18 lệnh: 9 lệnh cho phép (trừ \texttt{no-access}) và 9 lệnh bị chặn (trừ \texttt{platform-admin}), đúng con số dashboard ghi nhận ở Hình~\ref{fig:allowdeny}. Bảy trong chín lệnh bị chặn cùng nhắm vào \texttt{airflow\_get\_dag\_run}; hai lệnh còn lại là \texttt{airflow\_pause\_dag} của \texttt{airflow-monitor} và \texttt{dbt\_get\_lineage} của \texttt{airflow-operator}. Lệnh của \texttt{airflow-monitor} là trường hợp duy nhất thử việc tách quyền đọc và ghi trên cùng một hệ thống bằng lệnh gọi thật: agent đọc được DAG nhưng không tạm dừng được DAG. Với Kubernetes và OpenMetadata, ranh giới này mới được xác nhận ở bước khám phá, khi \texttt{cluster-observer} không thấy \texttt{radar\_manage\_workload} và \texttt{metadata-discovery} không thấy \texttt{openmetadata\_patch\_entity}. Vai trò \texttt{dbt\_viewer} có trong chính sách nhưng không agent nào dùng, nên ranh giới đọc/ghi của dbt chưa được kiểm.
+
+Cơ chế từ chối quan sát được có hai lớp, khớp với lưu đồ ở Hình~\ref{fig:decision}. Lớp đầu nằm ở bước khám phá, nơi công cụ ngoài quyền không xuất hiện trong \texttt{tools/list}. Lớp thứ hai bắt những lệnh \texttt{tools/call} gửi thẳng tên công cụ bị ẩn: gateway trả HTTP 400 kèm thông báo \texttt{Unknown tool}, và access log ghi đúng mã cùng thông báo đó mà không cho biết công cụ có tồn tại hay không. Thí nghiệm ngày 08/10/2026 tách riêng được hai lớp này. Khi quyền với \texttt{airflow\_pause\_dag} bị rút tạm thời, danh mục còn 20 công cụ, lệnh gọi trực tiếp nhận \texttt{400 Bad Request} và client thoát với mã 1 (\texttt{evidence/\allowbreak tool-denial.txt}). Dòng access log của lệnh đó, đã rút gọn và bỏ mã phiên, như sau.
+
+\begin{lstlisting}
+http.status=400 protocol=mcp mcp.method.name=tools/call
+mcp.target=airflow gen_ai.tool.name=pause_dag
+error="mcp: Unknown tool: airflow_pause_dag" reason=MCP
+duration=0ms user="anonymous" roles=[]
+\end{lstlisting}
+
+Hai trường \texttt{reason=MCP} và \texttt{duration=0ms} cho thấy gateway tự trả lỗi thay vì chuyển yêu cầu tới backend. Metrics cũng tách được hai loại: trong \texttt{evidence/\allowbreak tool-denial-metrics.txt}, yêu cầu bị chặn được đếm với nhãn \texttt{reason="MCP"}, còn trong \texttt{evidence/\allowbreak metrics-data-plane.txt}, yêu cầu thành công mang nhãn \texttt{reason="Upstream"}. Thí nghiệm diễn ra trước khi bật JWT nên log ghi \texttt{anonymous}; với agent đã xác thực, cùng mẫu lỗi xuất hiện trên dashboard kèm \texttt{agent\_id} và \texttt{agent\_roles}.
+
+Phép kiểm tra lệnh bị chặn trong script cần được đọc kỹ. Vì agentgateway v1.5.0 trả HTTP 400 rồi đóng luồng, script coi mọi ngoại lệ phía client là ``đã bị chặn''. Bản thân script do đó không phân biệt được một lệnh bị từ chối đúng cách với một lỗi kết nối; mã 400 và thông báo \texttt{Unknown tool} được xác nhận qua access log và dashboard, không qua \texttt{assert}.
+
+Các agent đặc biệt cho kết quả đúng thiết kế. \texttt{no-access-agent} nhận token có \texttt{roles} rỗng, thấy danh mục trống, và lệnh gọi \texttt{airflow\_get\_dag\_run} của nó bị chặn với \texttt{agent\_roles=[]} trên dashboard. Kết quả này không cần quy tắc từ chối nào: \texttt{rbac/\allowbreak tool-access.yaml} chỉ chứa quy tắc \texttt{Allow}, quy tắc nào cũng bắt đầu bằng \texttt{has(jwt.roles)} và đòi một vai trò cụ thể, nên danh sách vai trò rỗng không khớp quy tắc nào. Ở đầu kia, \texttt{platform-admin-agent} thấy đủ 21 công cụ và gọi được \texttt{airflow\_get\_dag\_run}, chính công cụ mà \texttt{no-access-agent} bị chặn; agent này không có công cụ nào ngoài quyền nên kiểm thử không có lệnh bị chặn cho nó. Riêng \texttt{incident-response-agent}, agent duy nhất mang hai vai trò, nhận đúng 7 công cụ, bằng 4 công cụ radar của \texttt{kube\_operator} cộng 3 công cụ Spark của \texttt{spark\_viewer}. Đó là quyền hợp mà yêu cầu S2 đặt ra. Tuy vậy, hai vai trò này nằm trên hai target khác nhau, nên trường hợp hai vai trò cùng cấp quyền khác nhau trên một hệ thống chưa được thử.
+
 \subsection{Kiểm chứng an toàn}
-\todo{Thiếu hoặc sai token bị chặn; gọi thẳng backend bị NetworkPolicy chặn; token gốc không tới backend.}
+
+Kết quả an toàn không đồng đều: những trường hợp có đầu ra lưu trong \texttt{evidence/} đều đạt, nhưng nhiều trường hợp mới dừng ở mức có kịch bản. Bảng~\ref{tab:ch5-safety} xếp từng trường hợp vào một trong ba mức bằng chứng. ``Đạt'' nghĩa là đầu ra đã được lưu; ``Có kịch bản'' nghĩa là script tồn tại trong kho mã nhưng đầu ra chưa được lưu; ``Chưa kiểm'' nghĩa là chưa có kịch bản nào.
+
+\begin{table}[H]\centering\caption{Các trường hợp kiểm chứng an toàn theo mức bằng chứng}\label{tab:ch5-safety}
+{\singlespacing\renewcommand{\arraystretch}{1.25}\small
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}p{5cm}|>{\raggedright\arraybackslash}p{3.2cm}|}\hline
+\textbf{Trường hợp} & \textbf{Script / bằng chứng} & \textbf{Kết quả} \\ \hline
+Token của 10 agent có \texttt{aud} chứa \texttt{mcp-gateway}, \texttt{azp} đúng client, \texttt{roles} đúng ma trận & \texttt{tests/\allowbreak agent\_rbac\_smoke.py}; \texttt{evidence/\allowbreak agent-rbac-smoke.txt} & Đạt (10/10) \\ \hline
+Backend nhận \texttt{x-agent-id}, \texttt{x-forwarded-user} do gateway đặt từ JWT & \texttt{tests/\allowbreak agent\_rbac\_smoke.py}; \texttt{evidence/\allowbreak agent-rbac-smoke.txt} & Đạt (9/9) \\ \hline
+Yêu cầu không token, token không phải JWT, header giả không kèm token bị trả 401 & \texttt{tests/\allowbreak curl/\allowbreak run.sh}, \texttt{scripts/\allowbreak run-tests.sh} & Có kịch bản \\ \hline
+Header danh tính giả kèm token hợp lệ bị thay bằng giá trị từ token & \texttt{tests/\allowbreak curl/\allowbreak run.sh} & Có kịch bản \\ \hline
+Backend không nhận token gốc (\texttt{authorization\_present=false}) & \texttt{tests/\allowbreak curl/\allowbreak run.sh}, \texttt{servers/\allowbreak mockkit.py} & Có kịch bản \\ \hline
+Token sai chữ ký, sai audience hoặc hết hạn & Không có & Chưa kiểm \\ \hline
+Pod ở \texttt{default} gọi \texttt{radar.mcp:80} & \texttt{evidence/\allowbreak agent-rbac-smoke.txt} & Đạt: bị chặn (hết thời gian chờ) \\ \hline
+Pod ở \texttt{agentgateway-system} gọi \texttt{radar.mcp:80} & \texttt{evidence/\allowbreak agent-rbac-smoke.txt} & Đạt: kết nối được (HTTP 406) \\ \hline
+Gọi thẳng backend Docker ngoài cụm (OpenMetadata, Spark History) & Không có & Chưa kiểm \\ \hline
+\end{tabularx}}\end{table}
+
+\subsubsection{Xác thực token}
+
+Phần đã có bằng chứng là chiều chấp nhận. Mười token do Keycloak cấp đều có \texttt{aud} chứa \texttt{mcp-gateway}, \texttt{azp} bằng client ID và \texttt{roles} khớp ma trận, và chính sách JWT ở trạng thái \texttt{Accepted=True}, \texttt{Attached=True}. Chiều từ chối thì chưa có. Chính sách đặt \texttt{mode: Strict}, mà theo chú thích trong \texttt{deploy/\allowbreak auth/\allowbreak jwt.yaml} là trả 401 khi thiếu token hoặc token không hợp lệ; \texttt{tests/\allowbreak curl/\allowbreak run.sh} có ba trường hợp kiểm tra mã 401, và \texttt{scripts/\allowbreak run-tests.sh} từ chối chạy nếu một yêu cầu không kèm token nhận mã khác 401. Thư mục \texttt{evidence/} lại không lưu đầu ra của hai script này, nên báo cáo không tính mã 401 là kết quả đã kiểm chứng. Token sai chữ ký, sai audience hoặc hết hạn chưa có kịch bản nào: gateway được cấu hình kiểm tra issuer, audience và chữ ký qua JWKS, nhưng hành vi với từng loại token sai chưa được thử.
+
+\subsubsection{Danh tính chuyển tiếp và token gốc}
+
+Bằng chứng duy nhất được lưu ở phần này là danh tính tới đúng backend: với cả chín agent có lệnh được phép, mock ghi nhận \texttt{x-agent-id} và \texttt{x-forwarded-user} bằng client ID lấy từ JWT. Hai thuộc tính còn lại thì chưa có bằng chứng. Việc header giả bị ghi đè dựa trên thao tác \texttt{set} trong chính sách, và \texttt{tests/\allowbreak curl/\allowbreak run.sh} kiểm tra nó bằng cách gửi \texttt{X-Forwarded-User: admin.user}, \texttt{X-Forwarded-Groups: data\_admin} kèm token của \texttt{engineer.user} rồi đòi mock chỉ thấy giá trị lấy từ token. Còn việc token gốc không tới backend (yêu cầu S3) được mock phản ánh qua cờ \texttt{authorization\_present} (\texttt{servers/\allowbreak mockkit.py}), và cùng script đó đòi cờ này bằng \texttt{false}. \texttt{agent\_rbac\_smoke.py} không kiểm tra cờ này, còn đầu ra của \texttt{tests/\allowbreak curl/\allowbreak run.sh} không được lưu.
+
+Cơ chế xóa token cũng đã đổi giữa hai cấu hình. Lúc ghi bằng chứng, chính sách JWT không bật \texttt{preserveToken}, nên theo chú thích trong \texttt{deploy/\allowbreak auth/\allowbreak jwt.yaml} gateway xóa token ngay sau khi kiểm tra. Ở cấu hình hiện tại, token được giữ tạm trong \texttt{x-caller-token} cho bước đổi token của OpenMetadata rồi bị chính sách \texttt{strip-caller-token} xóa. Với cả hai cách, chưa có dòng \texttt{authorization\_present=false} nào được lưu làm bằng chứng.
+
+\subsubsection{Cô lập mạng}
+
+NetworkPolicy chặn đúng như thiết kế ở mục~\ref{sec:netpol}. Từ một pod trong namespace \texttt{default}, kết nối tới \texttt{radar.mcp:80} hết thời gian chờ; từ một pod trong \texttt{agentgateway-system}, kết nối thành công và nhận HTTP 406 (\texttt{evidence/\allowbreak agent-rbac-smoke.txt}). Mã 406 do chính MCP endpoint trả về, tức là gói tin đã tới ứng dụng, và phép thăm dò chỉ cần chứng minh có kết nối chứ không cần một lệnh MCP thành công. Hai kết quả phải đi cùng nhau mới có giá trị: nếu chỉ có lần bị chặn, không loại trừ được khả năng backend đơn giản là không chạy.
+
+Phạm vi phép thử hẹp hơn phạm vi của S4. Nhóm chỉ thăm dò một Service là mock radar, từ một namespace ngoài gateway. Quy tắc cho phép theo namespace, nên mọi pod trong \texttt{agentgateway-system} đều tới được backend chứ không riêng pod proxy, và hai backend thật chạy bằng Docker là OpenMetadata và Spark History nằm ngoài tầm của NetworkPolicy. Vì header danh tính chỉ đáng tin khi backend không bị gọi vòng qua gateway, giới hạn này cũng là giới hạn của kết quả danh tính ở mục trên.
+
+\endgroup
 \subsection{Kiểm chứng tự động hóa và observability}
 Mục này kiểm chứng hai yêu cầu vận hành: hệ thống dựng lại được bằng một lệnh và chạy lại an toàn (O1), và kết quả phân quyền quan sát được trực quan theo agent, vai trò và công cụ (O2, S5).
 
@@ -39,7 +153,51 @@ Con số 4,1 giây cần được đọc đúng ngữ cảnh. Vì mọi tài ngu
 Hình~\ref{fig:allowdeny} cho thấy dashboard ghi nhận đúng 9 lệnh cho phép và 9 lệnh bị chặn, khớp hoàn toàn với dự đoán. Ở các ô chi tiết (Hình~\ref{fig:dashboard}), lệnh bị chặn của \texttt{no-access-agent} xuất hiện với \texttt{agent\_roles=[]}, \texttt{http.status=400} và thông báo \texttt{Unknown tool}, còn lệnh tương ứng của \texttt{platform-admin-agent} trên cùng công cụ \texttt{airflow\_get\_dag\_run} được ghi với \texttt{http.status=200}. Như vậy chỉ từ dashboard, người vận hành trả lời được cả ba câu hỏi kiểm toán: agent nào gọi, gọi công cụ nào, và kết quả là gì. Token không xuất hiện trong log; chỉ định danh chủ thể \texttt{jwt.sub} được ghi lại.
 
 Kết quả này có một giới hạn. Việc khớp 9/9 chứng minh quy tắc phân loại allow/deny đúng trên tập lệnh do bộ kiểm thử sinh ra, nhưng như đã nêu ở mục~\ref{sec:obs}, quy tắc vẫn không phân biệt được lệnh bị chặn vì thiếu quyền với lệnh gọi sai tên công cụ.
+
+\begingroup\setlength{\emergencystretch}{2em}
 \subsection{Đánh giá}
 \subsubsection{Đối chiếu mục tiêu}
+
+Chương 2 đặt bốn tiêu chí cho mục tiêu chung: đủ 21 công cụ gọi được qua gateway, kết quả cho phép và từ chối của mọi agent khớp ma trận, lệnh gọi thẳng backend bị chặn, và môi trường dựng lại được bằng một lệnh. Bảng~\ref{tab:ch5-goals} trải bốn tiêu chí đó ra mười mã yêu cầu của Bảng~\ref{tab:yeucau}. Một yêu cầu được xếp ``Đạt'' khi phần cốt lõi của nó có đầu ra lưu trong \texttt{evidence/}, và ``Đạt một phần'' khi phần đã kiểm đều đạt nhưng còn phần chưa có bằng chứng hoặc nằm ngoài phạm vi thử.
+
+\begin{table}[H]\centering\caption{Đối chiếu kết quả kiểm chứng với yêu cầu}\label{tab:ch5-goals}
+{\singlespacing\renewcommand{\arraystretch}{1.25}\small
+\begin{tabularx}{\textwidth}{|c|X|p{2.4cm}|}\hline
+\textbf{Mã} & \textbf{Kết quả kiểm chứng} & \textbf{Mức đạt} \\ \hline
+F1 & 21 lệnh gọi qua một địa chỉ \texttt{/mcp} đều thành công (trước khi bật JWT) & Đạt \\ \hline
+F2 & 21 tên mang tiền tố target, chia đúng 4/3/4/5/5 theo target; chưa có cặp tên gốc trùng để thử & Đạt \\ \hline
+F3 & \texttt{tools/list} của 10 agent khớp từng tên với ma trận, 210/210 ô & Đạt \\ \hline
+S1 & Agent không vai trò thấy 0 công cụ; 9/9 lệnh ngoài quyền bị chặn; mã 401 chưa có đầu ra lưu; token sai chữ ký, audience, hết hạn chưa kiểm & Đạt một phần \\ \hline
+S2 & Claim \texttt{roles} đúng 10/10; agent hai vai trò nhận 7 = 4 + 3 công cụ; lệnh gọi chỉ được thử theo mẫu & Đạt \\ \hline
+S3 & Chính sách xóa token có trong cấu hình; kịch bản kiểm tra \texttt{authorization\_present} có nhưng chưa lưu đầu ra & Đạt một phần \\ \hline
+S4 & Chặn từ \texttt{default}, cho phép từ \texttt{agentgateway-system}; chỉ thử một Service; backend Docker ngoài cụm không được bảo vệ & Đạt một phần \\ \hline
+S5 & Access log có \texttt{agent\_id}, vai trò, target, công cụ; lệnh được phép ghi 200, lệnh bị chặn ghi 400 kèm \texttt{Unknown tool} & Đạt \\ \hline
+O1 & Khởi động ấm 4,1 giây, mã thoát 0; chưa đo dựng từ cụm trống; \texttt{ops/\allowbreak up.ps1} chưa chạy trực tiếp & Đạt một phần \\ \hline
+O2 & Dashboard ghi 9 lệnh cho phép và 9 lệnh bị chặn, khớp ma trận & Đạt \\ \hline
+\end{tabularx}}\end{table}
+
+Kết quả là sáu yêu cầu đạt, bốn yêu cầu đạt một phần, và không yêu cầu nào thất bại ở phép thử đã chạy. Xét theo tiêu chí của Chương 2, tiêu chí về 21 công cụ (F1, F2) và tiêu chí khớp ma trận (F3, S2) đạt, còn tiêu chí chặn gọi thẳng backend (S4) và tiêu chí dựng bằng một lệnh (O1) mới đạt một phần. Cả bốn yêu cầu đạt một phần đều vướng ở chỗ thiếu bằng chứng hoặc phạm vi thử hẹp; chưa phép thử nào cho thấy hệ thống hành xử sai. Mọi mức đạt trong bảng gắn với cấu hình lúc chạy kiểm thử, khi năm target đều trỏ tới mock.
+
 \subsubsection{Điểm mạnh}
+
+Điểm mạnh rõ nhất là ma trận kỳ vọng được viết thành dữ liệu và được so khớp chính xác. File \texttt{tests/\allowbreak expected/\allowbreak agent-tool-access.json} vừa là kết quả mong đợi của kiểm thử đầu cuối, vừa là đầu vào của kiểm thử tĩnh; kiểm thử tĩnh còn đối chiếu nó với vai trò của từng client trong realm Keycloak và với các vai trò có mặt trong chính sách. Ở kiểm thử đầu cuối, 210 ô được so theo từng tên công cụ thay vì đếm, nên lệch một ô là script dừng. Chạy lại kiểm thử tĩnh trên kho mã hiện tại ngày 05/11/2026 cho dòng \texttt{static\_contract=PASS tools=21 agents=10}, và việc này không cần cụm.
+
+Việc từ chối xảy ra sớm và xảy ra ngay tại gateway. Công cụ ngoài quyền không có trong danh mục, nên 156 trên 210 ô bị ẩn trước khi mô hình kịp chọn công cụ; lệnh cố tình gọi vẫn bị gateway chặn với \texttt{duration=0ms} mà không chạm tới backend. Nguyên tắc mặc định từ chối cũng không phụ thuộc vào một quy tắc từ chối nào: phần dành cho agent trong chính sách chỉ gồm 10 biểu thức \texttt{Allow} cho 10 vai trò, và agent không vai trò không khớp biểu thức nào.
+
+Mỗi lệnh gọi để lại dấu vết ở nhiều phía độc lập: kết quả \texttt{assert} ở client, trường \texttt{seen\_by\_mock} ở backend, access log và metrics ở gateway, và dashboard trên Grafana. Các phía này đối chiếu được với nhau. Chín lệnh cho phép và chín lệnh bị chặn do script sinh ra trùng với hai ô số liệu trên Grafana, còn lệnh bị chặn của \texttt{no-access-agent} hiện cùng mã 400 ở cả access log lẫn dashboard, nên khi một phía ghi sai, sự chênh lệch sẽ lộ ra ở phía khác.
+
+Chi phí dựng môi trường thấp. Toàn bộ hệ thống chạy trong một cụm kind một node trên máy cá nhân, và lần khởi động ấm hoàn tất trong 4,1 giây (Bảng~\ref{tab:uptime}).
+
 \subsubsection{Hạn chế}
+
+Hạn chế lớn nhất là bằng chứng và kho mã hiện tại không cùng một cấu hình. Mọi file trong \texttt{evidence/} được ghi trước khi phần AI Agent được hợp nhất với phần người dùng và backend thật: đợt ngày 08/10/2026 thuộc giai đoạn chốt danh mục, còn hai đợt sau được ghi trên nhánh làm việc riêng của phần AI Agent. Ở cấu hình lúc đó, năm target đều là mock; các chính sách mang tên \texttt{ai-agent-\allowbreak jwt}, \texttt{ai-agent-\allowbreak tool-access}, \texttt{ai-agent-\allowbreak access-logs} và chỉ chứa quy tắc của agent; \texttt{x-forwarded-user} lấy từ claim \texttt{azp}; NetworkPolicy chỉ chọn các pod mock trên cổng 8000. Cấu hình hiện tại gộp quy tắc người dùng và agent vào một chính sách, chuyển radar, Spark History và OpenMetadata sang phần mềm thật, lấy \texttt{x-forwarded-user} từ \texttt{preferred\_username} và áp NetworkPolicy cho mọi pod trong namespace \texttt{mcp}. Chưa có đầu ra kiểm thử đầu cuối nào được ghi trên cấu hình hợp nhất; kiểm thử tĩnh là phép kiểm duy nhất đã chạy trên kho mã hiện tại. Thời gian 4,1 giây ở Bảng~\ref{tab:uptime} cũng được đo với phiên bản \texttt{scripts/\allowbreak up.sh} trước hợp nhất, khi script chưa có bước dựng realm bằng \texttt{kcadm.sh} và bước cấu hình đổi token cho OpenMetadata.
+
+Hệ quả trực tiếp là kết quả của chương này chưa nói gì về backend thật. Công cụ ghi của mock không gây tác dụng phụ, nên kiểm thử chứng minh gateway chặn đúng lệnh nhưng không chứng minh được gì về quyền trên tài nguyên. Phân quyền ở mức tài nguyên (namespace, DAG, thực thể metadata) và việc đổi token cho OpenMetadata chưa có file bằng chứng nào. Danh mục của người dùng trên backend thật đã có kỳ vọng trong \texttt{tests/\allowbreak expected/\allowbreak tools.json}, chẳng hạn \texttt{admin.user} phải thấy 76 công cụ, cùng kịch bản \texttt{tests/\allowbreak inspector/\allowbreak run.sh}, nhưng đầu ra cũng chưa được lưu.
+
+Độ phủ kiểm thử còn mỏng ở bước gọi. Ma trận được so đủ 210 ô ở bước khám phá, trong khi mỗi agent chỉ được thử một lệnh cho phép và một lệnh bị chặn, tổng cộng 18 lệnh, và bảy lệnh bị chặn trùng một công cụ. Đủ 21 lệnh gọi chỉ được chạy trước khi bật JWT. Phép kiểm tra lệnh bị chặn chấp nhận mọi ngoại lệ, và các trường hợp token sai, header giả, token gốc mới dừng ở mức có kịch bản hoặc chưa có kịch bản (Bảng~\ref{tab:ch5-safety}). Kiểm thử tĩnh chỉ kiểm tra tên vai trò có mặt trong chính sách chứ không kiểm tra vai trò đó được cấp những công cụ nào. Nó còn dùng biểu thức chính quy giả định ký tự xuống dòng LF: trên bản checkout Windows có \texttt{core.autocrlf=true}, script dừng với lỗi không tìm thấy \texttt{CASES} trước khi kiểm tra được gì, và chỉ chạy đạt sau khi các file được chuyển về LF.
+
+Một phần an toàn của hệ thống vẫn đứng trên giả định hơn là trên kiểm chứng. Backend tin header danh tính vì giả định chỉ gateway gọi được nó, nhưng giả định này mới được thử với một Service trong cụm, theo ranh giới namespace, và không áp dụng cho hai backend Docker ngoài cụm. Dashboard coi mọi lệnh HTTP 400 kèm \texttt{Unknown tool} là bị chặn, nên lệnh thiếu quyền và lệnh gọi sai tên công cụ bị đếm chung; vì gateway xử lý công cụ bị cấm như công cụ không tồn tại, log không đủ thông tin để tách hai trường hợp.
+
+Về vận hành, phép đo duy nhất là một lần khởi động ấm. Thời gian dựng từ cụm trống và độ trễ gateway thêm vào mỗi lệnh gọi chưa được đo, dù gateway đã xuất metric \texttt{agentgateway\_request\_duration\_seconds}. Lớp bọc \texttt{ops/\allowbreak up.ps1} chưa được chạy trực tiếp: phiên đo chạy bên trong WSL, và PowerShell khởi động từ phiên đó không gọi ngược lại được WSL (lỗi \texttt{UtilAcceptVsock}, \texttt{evidence/\allowbreak ops-up-timing.txt}). Script dọn dẹp \texttt{ops/\allowbreak down.ps1} chỉ xóa cụm kind, mặc định là cụm \texttt{gatewayapi} chứ không phải cụm \texttt{mcp} nơi ghi bằng chứng, và để nguyên hai nhóm container compose của OpenMetadata và Spark History. Tracing OpenTelemetry chưa được cấu hình (\texttt{evidence/\allowbreak tracing-status.txt}), nên việc truy vết hiện chỉ dựa vào access log.
+
+\endgroup
