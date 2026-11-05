@@ -226,38 +226,32 @@ Mỗi agent có một secret riêng, để khi một agent bị lộ secret thì
 
 \subsubsection{Phân tách khởi tạo một lần và khởi động thường xuyên}
 
-Việc dựng môi trường được chia làm hai giai đoạn theo tần suất. Giai đoạn khởi tạo chỉ chạy một lần: tạo cụm Kubernetes cục bộ bằng kind, cài các thành phần nền của Gateway API và agentgateway, rồi đóng gói image mock. Giai đoạn khởi động chạy mỗi khi bắt đầu làm việc, kể cả sau khi khởi động lại máy, và do script up đảm nhiệm. Chia như vậy vì chi phí rất khác nhau: các bước khởi tạo chậm và hiếm khi thay đổi, còn lần chạy đầu của script up tải thêm khoảng 4 GB image cho backend thật, sau đó các lần chạy chỉ cần khởi động lại phần còn thiếu. Gộp chung thì lần nào cũng chậm; tách ra thì lệnh hằng ngày nhanh và ít lỗi hơn.
+Việc dựng môi trường được chia làm hai giai đoạn theo tần suất. Giai đoạn khởi tạo chỉ chạy một lần: tạo cụm Kubernetes cục bộ bằng kind, cài Calico, các thành phần nền của Gateway API và agentgateway, rồi đóng gói image mock. Giai đoạn khởi động chạy mỗi khi bắt đầu làm việc, kể cả sau khi khởi động lại máy, và do script up đảm nhiệm. Chia như vậy vì chi phí rất khác nhau: các bước khởi tạo chậm, tải nhiều image và hiếm khi thay đổi, còn bước khởi động chỉ áp lại cấu hình nên nhanh. Gộp chung thì lần nào cũng chậm; tách ra thì lệnh hằng ngày nhanh và ít lỗi hơn.
 
-\subsubsection{Luồng của script up}
+\subsubsection{Cấu trúc ba tầng của script up}
 
-Script up được viết bằng PowerShell vì cả nhóm làm việc trên Windows (Phụ lục E). Luồng của script được thể hiện ở Hình~\ref{fig:up}. Việc đầu tiên script làm là kiểm tra điều kiện: các công cụ cần thiết đã được cài chưa, Docker có đang chạy không, kubectl có trỏ đúng cụm không, và các thành phần từ giai đoạn khởi tạo đã có chưa. Kiểm tra trước giúp người dùng biết ngay vấn đề ở đâu. Nếu không kiểm tra, script có thể chạy được nửa chừng rồi mới lỗi, để lại hệ thống ở trạng thái dở dang kèm thông báo lỗi khó hiểu.
+Script up gồm ba tầng (Hình~\ref{fig:up}, Phụ lục E). Tầng ngoài cùng là \texttt{ops/up.ps1}, viết bằng PowerShell để người dùng Windows chạy bằng một lệnh. Script này không tự làm việc dựng hệ thống mà chỉ xác định thư mục gốc của kho mã, đổi sang đường dẫn tương ứng trong WSL rồi giao toàn bộ công việc cho hai script bash, đồng thời đo tổng thời gian chạy. Lựa chọn này giữ cho logic dựng hệ thống chỉ tồn tại ở một nơi: người dùng Linux chạy thẳng hai script bash, người dùng Windows đi qua lớp bọc mỏng, và cả hai cùng thực thi đúng một chuỗi bước.
 
 \begin{figure}[H]\centering
-\begin{tikzpicture}[node distance=5mm,every node/.style={font=\small}]
-\node[khoi,fill=gray!10] (s) {Bắt đầu};
-\node[quyetdinh,below=of s] (p) {Tiền điều kiện\\đạt?};
-\node[khoi,right=12mm of p,fill=red!8] (x) {Dừng, báo\\cách khắc phục};
-\node[khoi,below=of p,text width=8cm] (l) {1. Các lớp Kubernetes: gateway, mock, Keycloak + realm,\\AI Agent, xác thực, phân quyền, mạng, access log};
-\node[khoi,below=of l,text width=8cm] (r) {2--3. Backend thật: radar (Helm), OpenMetadata, Spark (Docker)};
-\node[khoi,below=of r,text width=8cm] (f) {4. Port-forward gateway, Keycloak; cài Grafana};
-\node[khoi,below=of f,text width=8cm] (o) {5. Nạp dữ liệu mẫu OpenMetadata};
-\node[quyetdinh,below=of o] (g) {Gateway nhận\\token trước hạn?};
-\node[khoi,below=of g,fill=green!8] (e) {In địa chỉ dịch vụ\\và thời gian chạy};
-\draw[mui] (s)--(p); \draw[mui] (p)--node[above,nhan]{không}(x);
-\draw[mui] (p)--node[left,nhan]{có}(l); \draw[mui] (l)--(r); \draw[mui] (r)--(f); \draw[mui] (f)--(o); \draw[mui] (o)--(g);
-\draw[mui] (g)--node[left,nhan]{có}(e); \draw[mui] (g.east)-|node[above,nhan,pos=0.25]{hết thời gian}(x.south);
+\begin{tikzpicture}[node distance=4mm,every node/.style={font=\small}]
+\node[khoi,fill=gray!10,text width=9cm] (w) {\texttt{ops/up.ps1}: tìm gốc kho mã, chuyển sang WSL, bấm giờ};
+\node[khoi,below=of w,text width=9cm] (a) {\texttt{scripts/up.sh}\\gateway, mock, route $\rightarrow$ Keycloak + realm (nếu chưa có)\\$\rightarrow$ client AI Agent và secret $\rightarrow$ xác thực JWT, token exchange\\$\rightarrow$ phân quyền theo công cụ $\rightarrow$ NetworkPolicy $\rightarrow$ access log};
+\node[khoi,below=of a,text width=9cm] (g) {\texttt{observability/grafana/up.sh}: Loki, Alloy, Grafana + dashboard};
+\node[quyetdinh,below=of g] (ok) {Mã thoát = 0?};
+\node[khoi,right=10mm of ok,fill=red!8] (x) {Dừng, báo lỗi\\và thời gian đã chạy};
+\node[khoi,below=of ok,fill=green!8] (e) {Báo sẵn sàng\\và tổng thời gian};
+\draw[mui] (w)--(a); \draw[mui] (a)--(g); \draw[mui] (g)--(ok);
+\draw[mui] (ok)--node[above,nhan]{không}(x); \draw[mui] (ok)--node[left,nhan]{có}(e);
 \end{tikzpicture}
-\caption{Lưu đồ của script khởi động hệ thống}\label{fig:up}\end{figure}
+\caption{Cấu trúc và luồng của script khởi động}\label{fig:up}\end{figure}
 
-Sau khi kiểm tra, script dựng hệ thống theo thứ tự phụ thuộc, và thứ tự này không thể đảo. Keycloak phải chạy xong mới tạo được realm. Realm phải có thì mới lấy được secret của gateway. Secret của gateway phải có thì quy tắc đổi token cho OpenMetadata mới hoạt động. Tiếp theo, script khởi động các backend thật, mở port-forward ở chế độ chạy nền và cài bộ giám sát.
-
-Bước cuối cùng là chờ cho đến khi gateway nhận một token thật và trả lời được lệnh khởi tạo MCP. Bước này được chọn làm điều kiện kết thúc vì nó kiểm tra cả chuỗi cùng lúc: chỉ thành công khi Keycloak cấp được token, gateway kiểm tra được token và cả năm backend đều phản hồi. Nói cách khác, khi script báo xong thì hệ thống thực sự dùng được, chứ không chỉ là các thành phần đã được tạo ra.
+Tầng giữa là \texttt{scripts/up.sh}, áp các lớp cấu hình theo thứ tự phụ thuộc, và thứ tự này không thể đảo. Keycloak phải chạy xong mới tạo được realm. Realm phải có thì mới tạo được client cho AI Agent và lấy được secret của gateway. Secret của gateway phải có thì quy tắc đổi token cho OpenMetadata mới hoạt động. Chỉ sau khi danh tính sẵn sàng, script mới áp quy tắc phân quyền, NetworkPolicy và access log. Tầng cuối là \texttt{observability/grafana/up.sh}, cài Loki, Alloy và Grafana rồi chờ cả ba sẵn sàng.
 
 \subsubsection{Tính idempotent và xử lý lỗi}
 
-Script được thiết kế để chạy lại bao nhiêu lần cũng cho cùng kết quả (tính idempotent). Tính chất này cần thiết vì trong thực tế script hay bị dừng giữa chừng, do mất mạng hoặc máy hết bộ nhớ, và cách khắc phục đơn giản nhất là chạy lại. Để làm được điều đó, mỗi bước xử lý trường hợp ``đã làm rồi'' theo cách riêng. Cấu hình Kubernetes được áp theo kiểu khai báo trạng thái mong muốn, nên áp lại không tạo bản sao. Realm chỉ được tạo khi chưa có, vì tạo lại realm sẽ sinh khóa mới và làm mọi token đang dùng mất hiệu lực. Port-forward chỉ được mở khi cổng còn trống, tránh lỗi trùng cổng.
+Script được thiết kế để chạy lại bao nhiêu lần cũng cho cùng kết quả (tính idempotent). Tính chất này cần thiết vì trong thực tế script hay bị dừng giữa chừng, do mất mạng hoặc máy hết bộ nhớ, và cách khắc phục đơn giản nhất là chạy lại. Mỗi bước xử lý trường hợp ``đã làm rồi'' theo cách riêng. Cấu hình Kubernetes được áp theo kiểu khai báo trạng thái mong muốn, nên áp lại không tạo bản sao. Realm chỉ được tạo khi chưa có, vì tạo lại realm sẽ sinh khóa mới và làm mọi token đang dùng mất hiệu lực. Secret của agent chỉ được sinh khi chưa có, và script dừng lại nếu chỉ một phần secret tồn tại (mục~\ref{sec:agent}).
 
-Về xử lý lỗi, mọi bước chờ đều có giới hạn thời gian. Khi một thành phần không lên, script dừng và báo rõ thành phần nào quá hạn thay vì treo mãi. Script còn xử lý một đặc điểm của PowerShell: khi một chương trình bên ngoài như kubectl hay helm báo lỗi, PowerShell vẫn chạy tiếp lệnh sau. Nếu không xử lý, script có thể báo thành công trong khi một bước đã thất bại. Vì vậy mọi lệnh bên ngoài đều được bọc trong một hàm kiểm tra mã lỗi và dừng ngay khi có lỗi. Ngược với script up, script down chỉ làm một việc là xóa toàn bộ cụm, đưa máy về trạng thái sạch.
+Về xử lý lỗi, các script bash chạy ở chế độ dừng ngay khi một lệnh lỗi (\texttt{set -euo pipefail}), và mọi bước chờ đều có giới hạn thời gian, nên script không bao giờ báo thành công khi một bước đã thất bại và không treo mãi khi một thành phần không lên. Ở tầng PowerShell, mã thoát của WSL được kiểm tra và báo lại kèm thời gian đã chạy. Ngược với script up, script down chỉ làm một việc là xóa toàn bộ cụm, đưa máy về trạng thái sạch.
 
 % =====================================================================
 \subsection{Giám sát allow/deny}\label{sec:obs}
@@ -291,4 +285,6 @@ Như đã thấy ở Hình~\ref{fig:decision}, gateway không có mã lỗi riê
 
 Dashboard có tám ô, sắp xếp từ tổng quan xuống chi tiết theo đúng trình tự người vận hành điều tra một sự việc. Hai ô số liệu trên cùng cho biết tổng số lệnh được phép và bị chặn, giúp phát hiện ngay khi có bất thường. Bốn biểu đồ theo thời gian chia số liệu theo thời gian, theo người dùng, theo vai trò và theo công cụ, giúp khoanh vùng: ai đang bị chặn nhiều, vai trò nào có thể đang thiếu quyền, công cụ nào đang bị thử gọi trái phép. Hai ô log dưới cùng hiển thị từng lệnh gọi cụ thể, trong đó một ô chỉ chứa các lệnh bị chặn để tra cứu khi điều tra. Với cách bố trí này, người vận hành trả lời được câu hỏi ``ai đã gọi gì và có bị chặn không'' chỉ bằng vài thao tác lọc (O2, S5).
 
-\hinh{Dashboard giám sát allow/deny trên Grafana}{fig:dashboard}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth,trim=0 750 0 0,clip]{grafana-allow-deny.png}
+\caption{Dashboard giám sát allow/deny trên Grafana}\label{fig:dashboard}\end{figure}
