@@ -8,7 +8,37 @@
 \subsection{Kiểm chứng an toàn}
 \todo{Thiếu hoặc sai token bị chặn; gọi thẳng backend bị NetworkPolicy chặn; token gốc không tới backend.}
 \subsection{Kiểm chứng tự động hóa và observability}
-\todo{Thời gian chạy ops/up.ps1; dashboard khớp ma trận kỳ vọng.}
+Mục này kiểm chứng hai yêu cầu vận hành: hệ thống dựng lại được bằng một lệnh và chạy lại an toàn (O1), và kết quả phân quyền quan sát được trực quan theo agent, vai trò và công cụ (O2, S5).
+
+\subsubsection{Thời gian khởi động và tính idempotent}
+
+Thời gian khởi động được đo trên máy chủ thử nghiệm, chạy đúng chuỗi lệnh mà \texttt{ops/up.ps1} giao cho WSL (\texttt{scripts/up.sh} rồi \texttt{observability/grafana/up.sh}). Lần đo được thực hiện khi cụm \texttt{kind-mcp} và mọi image đã có sẵn, tức là tình huống khởi động hằng ngày. Kết quả là toàn bộ chuỗi hoàn tất trong 4,1 giây với mã thoát 0 (Bảng~\ref{tab:uptime}).
+
+\begin{table}[H]\centering\caption{Kết quả đo thời gian khởi động}\label{tab:uptime}
+{\singlespacing\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{|p{4.2cm}|X|}\hline
+\textbf{Thông số} & \textbf{Giá trị} \\ \hline
+Ngày đo & 05/11/2026 \\ \hline
+Điều kiện & Khởi động ấm: cụm và image đã có sẵn \\ \hline
+Chuỗi lệnh & \texttt{scripts/up.sh \&\& observability/grafana/up.sh} \\ \hline
+Thời gian & 4,096 giây \\ \hline
+Mã thoát & 0 \\ \hline
+\end{tabularx}}\end{table}
+
+Con số 4,1 giây cần được đọc đúng ngữ cảnh. Vì mọi tài nguyên đã tồn tại, phần lớn các lệnh \texttt{kubectl apply} chỉ xác nhận trạng thái không đổi, realm không bị tạo lại và secret của agent được giữ nguyên. Nói cách khác, lần đo này đồng thời là bằng chứng cho tính idempotent: chạy lại script trên một hệ thống đang hoạt động kết thúc thành công, nhanh và không làm thay đổi danh tính hay khóa ký, nên các token đang dùng vẫn hợp lệ. Thời gian của lần dựng đầu tiên từ cụm trống lớn hơn nhiều, do phải tải image và chờ Keycloak khởi động, và không được đo trong phạm vi đề tài.
+
+\subsubsection{Dashboard khớp với ma trận kỳ vọng}
+
+Để kiểm chứng dashboard, nhóm chạy bộ kiểm thử phân quyền theo agent rồi đối chiếu số liệu Grafana với kết quả mong đợi. Với mỗi agent có ít nhất một công cụ được phép, bộ kiểm thử gọi một công cụ được phép; với mỗi agent có ít nhất một công cụ bị cấm, nó gọi một công cụ bị cấm. Trong mười agent, chín agent có công cụ được phép (trừ \texttt{no-access}) và chín agent có công cụ bị cấm (trừ \texttt{platform-admin}). Ma trận kỳ vọng vì thế dự đoán đúng 9 lệnh cho phép và 9 lệnh bị chặn.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.48\textwidth]{grafana-allow.png}\hfill
+\includegraphics[width=0.48\textwidth]{grafana-deny.png}
+\caption{Số lệnh cho phép và bị chặn trên dashboard sau một lượt kiểm thử}\label{fig:allowdeny}\end{figure}
+
+Hình~\ref{fig:allowdeny} cho thấy dashboard ghi nhận đúng 9 lệnh cho phép và 9 lệnh bị chặn, khớp hoàn toàn với dự đoán. Ở các ô chi tiết (Hình~\ref{fig:dashboard}), lệnh bị chặn của \texttt{no-access-agent} xuất hiện với \texttt{agent\_roles=[]}, \texttt{http.status=400} và thông báo \texttt{Unknown tool}, còn lệnh tương ứng của \texttt{platform-admin-agent} trên cùng công cụ \texttt{airflow\_get\_dag\_run} được ghi với \texttt{http.status=200}. Như vậy chỉ từ dashboard, người vận hành trả lời được cả ba câu hỏi kiểm toán: agent nào gọi, gọi công cụ nào, và kết quả là gì. Token không xuất hiện trong log; chỉ định danh chủ thể \texttt{jwt.sub} được ghi lại.
+
+Kết quả này có một giới hạn. Việc khớp 9/9 chứng minh quy tắc phân loại allow/deny đúng trên tập lệnh do bộ kiểm thử sinh ra, nhưng như đã nêu ở mục~\ref{sec:obs}, quy tắc vẫn không phân biệt được lệnh bị chặn vì thiếu quyền với lệnh gọi sai tên công cụ.
 \subsection{Đánh giá}
 \subsubsection{Đối chiếu mục tiêu}
 \subsubsection{Điểm mạnh}
