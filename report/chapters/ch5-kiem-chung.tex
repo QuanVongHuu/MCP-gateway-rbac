@@ -2,17 +2,34 @@
 \begingroup\setlength{\emergencystretch}{2em}
 \subsection{Kịch bản kiểm chứng}
 
-Mỗi yêu cầu ở Bảng~\ref{tab:yeucau} được gắn với ít nhất một kịch bản có đầu ra kiểm tra được, ở hai mức. Ở mức tĩnh, một bộ kiểm thử đối chiếu ma trận kỳ vọng với danh mục công cụ, chính sách phân quyền và cấu hình realm mà không cần cụm. Ở mức đầu cuối, hai bộ kiểm thử, một cho danh mục công cụ và một cho phân quyền theo agent, dùng MCP Python SDK 1.30.0 gọi thật vào \texttt{/mcp} và dừng ở phép so sánh sai đầu tiên, nên kết quả ``PASS'' chỉ xuất hiện khi mọi phép so đều đúng. Thăm dò NetworkPolicy, đọc access log và metrics được chạy thủ công, đầu ra được lưu lại làm bằng chứng.
+Mỗi yêu cầu ở Bảng~\ref{tab:yeucau} được gắn với ít nhất một kịch bản có tiêu chí đạt viết trước và đầu ra kiểm tra được (Bảng~\ref{tab:scenarios}). Các kịch bản chạy ở hai mức. Ở mức tĩnh, kịch bản K9 đối chiếu ma trận kỳ vọng với danh mục công cụ, chính sách phân quyền và cấu hình realm mà không cần cụm. Ở mức đầu cuối, hai bộ kiểm thử, một cho danh mục công cụ và một cho phân quyền theo agent, dùng MCP Python SDK 1.30.0 gọi thật vào \texttt{/mcp} và dừng ở phép so sánh sai đầu tiên, nên kết quả ``PASS'' chỉ xuất hiện khi mọi phép so đều đúng. Thăm dò NetworkPolicy và đọc access log được chạy thủ công, đầu ra được lưu lại làm bằng chứng.
 
-Môi trường thử là cụm kind một node, Kubernetes v1.37.0 với Calico v3.33.0 trên WSL2, agentgateway v1.5.0 và Keycloak 26.2.5. Bằng chứng được ghi theo ba đợt: 08/10/2026 cho danh mục và thí nghiệm ẩn công cụ, 29/10/2026 cho phân quyền theo agent, cô lập mạng và kiểm toán, 05/11/2026 cho dashboard và thời gian khởi động. Kết quả của từng nhóm yêu cầu được trình bày theo thứ tự chức năng, phân quyền, an toàn rồi vận hành, và được tổng hợp ở Bảng~\ref{tab:ch5-goals}.
+\begin{table}[H]\centering\caption{Kịch bản kiểm chứng theo yêu cầu}\label{tab:scenarios}
+{\singlespacing\renewcommand{\arraystretch}{1.15}\small
+\begin{tabularx}{\textwidth}{|c|>{\raggedright\arraybackslash}p{1.5cm}|>{\raggedright\arraybackslash}X|>{\raggedright\arraybackslash}p{4.2cm}|}\hline
+\textbf{Mã} & \textbf{Yêu cầu} & \textbf{Kịch bản và tiêu chí đạt} & \textbf{Bằng chứng} \\ \hline
+K1 & F1, F2 & Liệt kê và gọi cả 21 công cụ qua \texttt{/mcp}; danh sách tên đã sắp xếp phải trùng khớp và không lệnh nào lỗi & \path{gateway-smoke.txt} (08/10) \\ \hline
+K2 & F3, S2 & Mười agent xin token; \texttt{tools/list} của mỗi agent phải trùng ma trận kỳ vọng & \path{agent-rbac-smoke.txt} (29/10) \\ \hline
+K3 & S1 & Mỗi agent gọi một công cụ ngoài quyền và phải bị từ chối; ẩn tạm một công cụ rồi gọi thẳng tên của nó & \path{agent-rbac-smoke.txt}, \path{tool-denial*.txt} \\ \hline
+K4 & S2, S3 & Token mang đúng \texttt{aud}, \texttt{azp}, \texttt{roles}; backend báo lại đúng header danh tính & \path{agent-rbac-smoke.txt} \\ \hline
+K5 & S1, S3 & Gọi bằng curl khi thiếu token, khi gửi header danh tính giả, và kiểm tra token gốc không tới backend & Chưa lưu đầu ra \\ \hline
+K6 & S4 & Thăm dò backend radar từ namespace \texttt{default} và từ namespace của gateway & \path{agent-rbac-smoke.txt} \\ \hline
+K7 & S5, O2 & Mọi lệnh cho phép và bị chặn phải có bản ghi kèm danh tính agent trong access log và trên dashboard & Access log, ảnh dashboard \\ \hline
+K8 & O1 & Năm lần khởi động ấm liên tiếp, mỗi lần kèm kiểm thử phân quyền & \path{benchmarks/warm.md} \\ \hline
+K9 & F2, S2 & Kiểm thử tĩnh đối chiếu ma trận, danh mục, chính sách và realm & \path{static_contract_test.mjs} \\ \hline
+\end{tabularx}}\end{table}
+
+Môi trường thử là cụm kind một node, Kubernetes v1.37.0 với Calico v3.33.0 trên WSL2, agentgateway v1.5.0 và Keycloak 26.2.5. Bằng chứng được ghi theo ba đợt: 08/10/2026 cho danh mục và thí nghiệm ẩn công cụ, 29/10/2026 cho phân quyền theo agent, cô lập mạng và kiểm toán, 05/11/2026 cho dashboard và thời gian khởi động. Các mục dưới đây trình bày kết quả theo thứ tự chức năng, phân quyền, an toàn rồi vận hành; Bảng~\ref{tab:ch5-goals} ở cuối chương tổng hợp lại theo từng yêu cầu.
 
 \subsection{Kết quả chức năng}
 
-Kiểm thử danh mục đạt trọn vẹn: gateway trả về 21 công cụ và cả 21 lệnh gọi đều thành công. Bộ kiểm thử so toàn bộ danh sách tên đã sắp xếp chứ không chỉ đếm, nên một công cụ thiếu, thừa hay sai tiền tố đều làm lần chạy thất bại. Số công cụ theo target khớp Bảng~\ref{tab:tools} (radar 4, spark-history 3, openmetadata 4, dbt 5, airflow 5). Access log của cùng lượt chạy cho thấy gateway tách tên đầy đủ trở lại thành target và tên gốc, chẳng hạn \texttt{mcp.target=spark-history} đi cùng \texttt{gen\_ai.tool.name=get\_stage}; đây cũng là hai trường mà quy tắc phân quyền dùng. Ở phía backend, sau mỗi lệnh được phép, bộ kiểm thử đọc phần thông tin mà mock báo lại và so header \texttt{x-agent-id}, \texttt{x-forwarded-user} với danh tính của agent; cả chín agent có lệnh được phép đều qua phép so này.
+Kịch bản K1 đạt trọn vẹn: gateway trả về 21 công cụ và cả 21 lệnh gọi đều thành công. Bộ kiểm thử so toàn bộ danh sách tên đã sắp xếp chứ không chỉ đếm, nên một công cụ thiếu, thừa hay sai tiền tố đều làm lần chạy thất bại. Số công cụ theo target khớp Bảng~\ref{tab:tools} (radar 4, spark-history 3, openmetadata 4, dbt 5, airflow 5). Access log của cùng lượt chạy cho thấy gateway tách tên đầy đủ trở lại thành target và tên gốc, chẳng hạn \texttt{mcp.target=spark-history} đi cùng \texttt{gen\_ai.tool.name=get\_stage}; đây cũng là hai trường mà quy tắc phân quyền đọc.
+
+Kết quả này cần đọc cùng một điều kiện: lượt chạy ngày 08/10/2026 diễn ra trước khi bật xác thực JWT, nên access log ghi \texttt{user="anonymous"}. Sau khi bật JWT, danh mục đủ 21 công cụ được xác nhận lại qua \texttt{platform-admin-agent} ở kịch bản K2, nhưng agent này chỉ gọi một công cụ. Như vậy F1 và F2 có bằng chứng đầy đủ ở bước khám phá dưới JWT, còn bằng chứng gọi đủ 21 công cụ là của cấu hình chưa bật JWT.
 
 \subsection{Kết quả phân quyền}
 
-Cả mười agent đều đạt trong lượt chạy ngày 29/10/2026. Bảng~\ref{tab:rbac} đặt số kỳ vọng, tính từ ma trận Agent -- Vai trò -- Công cụ, cạnh số thực tế. Vì bộ kiểm thử so khớp từng tên, việc hai cột trùng nhau có nghĩa cả 210 ô của ma trận (10 agent nhân 21 công cụ) đều đúng ở bước khám phá.
+Cả mười agent đều đạt kịch bản K2 trong lượt chạy ngày 29/10/2026. Bảng~\ref{tab:rbac} đặt số kỳ vọng, tính từ ma trận Agent -- Vai trò -- Công cụ, cạnh số thực tế. Vì bộ kiểm thử so khớp từng tên chứ không so số lượng, việc hai cột trùng nhau có nghĩa cả 210 ô của ma trận (10 agent nhân 21 công cụ) đều đúng ở bước khám phá.
 
 \begin{table}[H]\centering\caption{Kết quả kiểm thử phân quyền theo agent}\label{tab:rbac}
 {\singlespacing\renewcommand{\arraystretch}{1.15}\small
@@ -31,15 +48,23 @@ no-access & (không có) & 0/0 & 21/21 \\ \hline
 \textbf{Tổng (210 ô)} & & \textbf{54/54} & \textbf{156/156} \\ \hline
 \end{tabularx}}\end{table}
 
-Ở bước gọi, độ phủ hẹp hơn. Bộ kiểm thử gọi công cụ đầu tiên theo thứ tự chữ cái trong danh sách được phép và công cụ đầu tiên ngoài quyền, nên mười agent sinh ra 18 lệnh: 9 lệnh cho phép (trừ \texttt{no-access}) và 9 lệnh bị chặn (trừ \texttt{platform-admin}). Bảy lệnh bị chặn cùng nhắm vào \texttt{airflow\_get\_dag\_run}; lệnh \texttt{airflow\_pause\_dag} của \texttt{airflow-monitor} là trường hợp duy nhất thử tách quyền đọc và ghi trên cùng một hệ thống bằng lệnh gọi thật. \texttt{incident-response-agent}, agent duy nhất có hai vai trò, nhận đúng 7 công cụ, bằng 4 công cụ radar cộng 3 công cụ Spark, tức quyền hợp mà S2 đặt ra.
+Hai dòng của bảng kiểm tra trực tiếp hai tính chất của mô hình quyền. \texttt{incident-response-agent}, agent duy nhất có hai vai trò, nhận đúng 7 công cụ, bằng 4 công cụ radar cộng 3 công cụ Spark, tức quyền hợp mà S2 đặt ra. \texttt{no-access-agent} thấy danh mục trống mà không cần quy tắc từ chối nào, vì mọi quy tắc trong chính sách đều là quy tắc cho phép và đòi một vai trò cụ thể; đây là mặc định từ chối của S1.
 
-Cơ chế từ chối có hai lớp, khớp với Hình~\ref{fig:decision}. Ở bước khám phá, công cụ ngoài quyền không xuất hiện trong \texttt{tools/list}. Với lệnh \texttt{tools/call} gửi thẳng tên công cụ bị ẩn, gateway trả HTTP 400 kèm \texttt{Unknown tool}. Thí nghiệm ngày 08/10/2026 tách riêng được lớp thứ hai: khi tạm rút quyền với \texttt{airflow\_pause\_dag}, danh mục còn 20 công cụ và lệnh gọi trực tiếp nhận \texttt{400 Bad Request}; access log ghi \texttt{reason=MCP} và \texttt{duration=0ms}, cho thấy gateway tự trả lỗi mà không chuyển yêu cầu tới backend. \texttt{no-access-agent} thấy danh mục trống mà không cần quy tắc từ chối nào, vì mọi quy tắc trong chính sách phân quyền đều là quy tắc cho phép và đòi một vai trò cụ thể.
+Ở bước gọi (K3), độ phủ hẹp hơn. Với mỗi agent, bộ kiểm thử gọi công cụ đầu tiên theo thứ tự chữ cái trong danh sách được phép và công cụ đầu tiên ngoài quyền, nên mười agent sinh ra 18 lệnh: 9 lệnh cho phép (trừ \texttt{no-access}) và 9 lệnh bị chặn (trừ \texttt{platform-admin}). Bảy lệnh bị chặn cùng nhắm vào \texttt{airflow\_get\_dag\_run}; lệnh \texttt{airflow\_pause\_dag} của \texttt{airflow-monitor} là trường hợp duy nhất thử tách quyền đọc và ghi trên cùng một hệ thống bằng lệnh gọi thật.
+
+Cơ chế từ chối có hai lớp, khớp với Hình~\ref{fig:decision}. Ở bước khám phá, công cụ ngoài quyền không xuất hiện trong \texttt{tools/list}. Với lệnh \texttt{tools/call} gửi thẳng tên một công cụ bị ẩn, gateway trả HTTP 400 kèm \texttt{Unknown tool}. Thí nghiệm ngày 08/10/2026 tách riêng được lớp thứ hai: khi tạm rút quyền với \texttt{airflow\_pause\_dag}, danh mục còn 20 công cụ và lệnh gọi trực tiếp nhận \texttt{400 Bad Request}; access log ghi \texttt{reason=MCP} và \texttt{duration=0ms}, cho thấy gateway tự trả lỗi mà không chuyển yêu cầu tới backend.
 
 \subsection{Kiểm chứng an toàn}
 
-Về xác thực, chiều chấp nhận đã có bằng chứng: token của cả 10 agent mang đúng \texttt{aud}, \texttt{azp} và \texttt{roles} theo ma trận, và ở 9/9 lệnh được phép, backend nhận \texttt{x-agent-id} và \texttt{x-forwarded-user} lấy từ JWT. Chiều từ chối, gồm mã 401 khi thiếu token, việc ghi đè header danh tính giả và việc token gốc không tới backend, đã có kịch bản kiểm thử bằng curl nhưng đầu ra chưa được lưu, nên báo cáo không tính là kết quả đã kiểm chứng; token sai chữ ký, sai audience hoặc hết hạn chưa có kịch bản.
+\subsubsection{Token và danh tính}
 
-Về cô lập mạng, hai lần thăm dò tới backend radar phải đi cùng nhau mới có giá trị: kết nối từ namespace \texttt{default} hết thời gian chờ, còn kết nối từ namespace của gateway nhận HTTP 406 từ chính MCP endpoint, chứng tỏ backend vẫn chạy và chỉ bị chặn theo nguồn (mục~\ref{sec:netpol}). Backend Docker chạy ngoài cụm chưa được thăm dò.
+Chiều chấp nhận của xác thực đã có bằng chứng (K4). Token của cả 10 agent mang đúng \texttt{aud}, \texttt{azp} và \texttt{roles} theo ma trận; ở 9/9 lệnh được phép, mock báo lại rằng nó nhận \texttt{x-agent-id} bằng client ID của agent và \texttt{x-forwarded-user} bằng tên tài khoản dịch vụ tương ứng, tức hai giá trị lấy từ JWT đã kiểm tra chứ không phải từ client.
+
+Chiều từ chối chưa có bằng chứng đã lưu (K5). Ba trường hợp, gồm mã 401 khi thiếu token, việc ghi đè header danh tính giả và việc token gốc không tới backend, đã được chạy bằng curl nhưng đầu ra không được lưu, nên báo cáo không tính là kết quả đã kiểm chứng. Token sai chữ ký, sai audience hoặc hết hạn chưa có kịch bản. Riêng S3 có thể đóng lại với chi phí nhỏ: mock đã báo về trường \texttt{authorization\_present}, nhưng bộ kiểm thử phân quyền chưa khẳng định trường này bằng \texttt{false}; thêm một phép so là có bằng chứng tự động cho cả 9 lệnh được phép.
+
+\subsubsection{Cô lập mạng}
+
+Kịch bản K6 gồm hai lần thăm dò tới backend radar, và chúng phải đi cùng nhau mới có giá trị. Kết nối từ namespace \texttt{default} hết thời gian chờ. Kết nối từ namespace của gateway nhận HTTP 406 từ chính MCP endpoint, mã mà endpoint Streamable HTTP trả khi yêu cầu không khai báo nhận được cả JSON lẫn SSE như lần thăm dò thô này. Mã 406 vì thế chứng tỏ backend vẫn chạy và đã trả lời; nếu chỉ có lần thăm dò thứ nhất, việc hết thời gian chờ có thể do backend tắt chứ không phải do NetworkPolicy. Ghép hai kết quả lại, backend chỉ bị chặn theo nguồn (mục~\ref{sec:netpol}). Backend Docker chạy ngoài cụm chưa được thăm dò.
 
 \endgroup
 \subsection{Kiểm chứng tự động hóa và observability}
@@ -70,7 +95,7 @@ Thời gian giữa các lần chênh nhau chưa tới 0,09 giây, độ lệch c
 \subsection{Đánh giá}
 \subsubsection{Đối chiếu mục tiêu}
 
-Bảng~\ref{tab:ch5-goals} tổng hợp số đo của từng yêu cầu. Một yêu cầu ``Đạt'' khi mọi phép đo đã chạy cho kết quả bằng kỳ vọng và phần cốt lõi có đầu ra đã lưu; ``Một phần'' khi phép đo đã chạy đều đạt nhưng còn trường hợp chưa có đầu ra hoặc nằm ngoài phạm vi thử.
+Bảng~\ref{tab:ch5-goals} tổng hợp số đo của từng yêu cầu. Một yêu cầu ``Đạt'' khi mọi phép đo đã chạy cho kết quả bằng kỳ vọng và phần cốt lõi có đầu ra đã lưu; ``Một phần'' khi phép đo đã chạy đều đạt nhưng còn trường hợp chưa có đầu ra hoặc nằm ngoài phạm vi thử. Tiêu chí này cố ý chặt: một kết quả đã quan sát nhưng không lưu đầu ra không được tính.
 
 \begin{table}[H]\centering\caption{Tổng hợp kết quả đo theo yêu cầu}\label{tab:ch5-goals}
 {\singlespacing\renewcommand{\arraystretch}{1.15}\small
@@ -88,16 +113,18 @@ O1 & Lần khởi động ấm đạt kiểm thử (TB 4,15 giây) & 5 & 5 & M�
 O2 & Lần đếm allow / deny khớp 9 / 9 & 5 & 5 & Đạt \\ \hline
 \end{tabularx}}\end{table}
 
-Sáu yêu cầu đạt, bốn đạt một phần, và ở mọi phép đo đã chạy, giá trị thực tế đều bằng kỳ vọng. Bốn yêu cầu đạt một phần đều do thiếu đầu ra hoặc phạm vi thử hẹp: S1 chưa có đầu ra cho mã 401 và token sai, S3 chưa có đầu ra cho việc xóa token gốc, S4 chưa thăm dò backend ngoài cụm, và O1 chưa đo lần dựng từ cụm trống.
+Sáu yêu cầu đạt, bốn đạt một phần, và ở mọi phép đo đã chạy, giá trị thực tế đều bằng kỳ vọng; không phép đo nào cho kết quả sai. Cả bốn yêu cầu đạt một phần đều do thiếu đầu ra hoặc phạm vi thử hẹp: S1 chưa có đầu ra cho mã 401 và token sai, S3 chưa có đầu ra cho việc xóa token gốc, S4 chưa thăm dò backend ngoài cụm, và O1 chưa đo lần dựng từ cụm trống. Như vậy mục tiêu chung ở Chương 2 đạt được ở phần lõi, gồm danh mục hợp nhất, phân quyền theo công cụ và cô lập mạng trong cụm, còn phần chưa đạt nằm ở chiều từ chối của xác thực, chiều mà một kẻ tấn công sẽ thử đầu tiên.
 
 \subsubsection{Điểm mạnh}
 
-Điểm mạnh rõ nhất là ma trận kỳ vọng được viết thành dữ liệu và so khớp chính xác. Cùng một ma trận vừa là kết quả mong đợi của kiểm thử đầu cuối, vừa là đầu vào của kiểm thử tĩnh, và kiểm thử tĩnh chạy lại ngày 05/11/2026 vẫn đạt với 21 công cụ và 10 agent mà không cần cụm. Việc từ chối xảy ra sớm và ngay tại gateway: 156 trên 210 ô bị ẩn trước khi mô hình kịp chọn công cụ, còn lệnh cố tình gọi bị chặn với \texttt{duration=0ms}. Mỗi lệnh gọi để lại dấu vết ở nhiều phía độc lập, gồm phép kiểm ở client, thông tin mock báo lại ở backend, access log ở gateway và dashboard, và các phía này khớp nhau, nên khi một phía ghi sai thì sự chênh lệch sẽ lộ ra ở phía khác.
+Điểm mạnh rõ nhất là ma trận kỳ vọng được viết thành dữ liệu và so khớp chính xác. Cùng một ma trận vừa là kết quả mong đợi của kiểm thử đầu cuối, vừa là đầu vào của kiểm thử tĩnh (K9), và kiểm thử tĩnh chạy lại ngày 05/11/2026 vẫn đạt với 21 công cụ và 10 agent mà không cần cụm. Nhờ đó, một thay đổi chính sách không kèm cập nhật ma trận sẽ bị phát hiện ngay trên máy cá nhân, trước khi được áp vào cụm.
+
+Điểm mạnh thứ hai là việc từ chối xảy ra sớm và ngay tại gateway: 156 trên 210 ô bị ẩn trước khi mô hình kịp chọn công cụ, còn lệnh cố tình gọi bị chặn với \texttt{duration=0ms}, tức backend không nhận được yêu cầu. Điểm mạnh thứ ba là mỗi lệnh gọi để lại dấu vết ở nhiều phía độc lập, gồm phép kiểm ở client, thông tin mock báo lại ở backend, access log ở gateway và dashboard. Các phía này khớp nhau, và vì chúng độc lập, một phía ghi sai sẽ lộ ra qua chênh lệch với phía khác.
 
 \subsubsection{Hạn chế}
 
-Hạn chế lớn nhất là bằng chứng và cấu hình hiện tại không trùng nhau hoàn toàn. Toàn bộ bằng chứng được ghi khi năm target đều là mock và các chính sách chỉ chứa quy tắc của agent. Cấu hình hiện tại đã gộp quy tắc người dùng và agent vào một chính sách, chuyển radar, Spark History và OpenMetadata sang phần mềm thật, lấy \texttt{x-forwarded-user} từ \texttt{preferred\_username} và áp NetworkPolicy cho mọi pod trong namespace backend; chưa có đầu ra kiểm thử đầu cuối nào trên cấu hình hợp nhất này. Ngoài ra, lượt chạy 21/21 ngày 08/10/2026 diễn ra trước khi bật xác thực JWT, nên access log ghi \texttt{user="anonymous"}; sau khi bật JWT, danh mục 21 công cụ được xác nhận lại qua \texttt{platform-admin-agent} nhưng agent này chỉ gọi một công cụ. Vì mock không gây tác dụng phụ, kết quả chưa nói gì về quyền trên tài nguyên thật như namespace, DAG hay thực thể metadata, và việc đổi token cho OpenMetadata chưa có bằng chứng.
+Hạn chế lớn nhất là bằng chứng và cấu hình hiện tại không trùng nhau hoàn toàn. Toàn bộ bằng chứng được ghi khi năm target đều là mock và các chính sách chỉ chứa quy tắc của agent. Cấu hình hiện tại đã gộp quy tắc người dùng và agent vào một chính sách, chuyển radar, Spark History và OpenMetadata sang phần mềm thật, lấy \texttt{x-forwarded-user} từ \texttt{preferred\_username} và áp NetworkPolicy cho mọi pod trong namespace backend; chưa có đầu ra kiểm thử đầu cuối nào trên cấu hình hợp nhất này. Vì mock không gây tác dụng phụ, kết quả cũng chưa nói gì về quyền trên tài nguyên thật như namespace, DAG hay thực thể metadata, và việc đổi token cho OpenMetadata chưa có bằng chứng.
 
-Độ phủ ở bước gọi còn mỏng: 210 ô được so ở bước khám phá nhưng chỉ 18 lệnh được gọi thật. Bộ kiểm thử coi mọi ngoại lệ phía client là ``đã bị chặn'', nên tự nó không phân biệt được một lệnh bị từ chối đúng cách với một lỗi kết nối; mã 400 được xác nhận qua access log và dashboard. Dashboard cũng đếm chung lệnh thiếu quyền với lệnh gọi sai tên công cụ. Về vận hành, số đo khởi động mới có năm lần ở tình huống khởi động ấm; thời gian dựng từ cụm trống và độ trễ gateway thêm vào mỗi lệnh chưa được đo; lớp bọc PowerShell chưa được chạy trực tiếp vì phiên đo chạy bên trong WSL; script dọn dẹp để nguyên hai nhóm container compose; và tracing chưa được cấu hình.
+Độ phủ ở bước gọi còn mỏng: 210 ô được so ở bước khám phá nhưng chỉ 18 lệnh được gọi thật, và chỉ một lệnh thử tách đọc với ghi trên cùng hệ thống. Bộ kiểm thử coi mọi ngoại lệ phía client là ``đã bị chặn'', nên tự nó không phân biệt được một lệnh bị từ chối đúng cách với một lỗi kết nối; mã 400 được xác nhận qua access log và dashboard chứ không qua bộ kiểm thử. Dashboard cũng đếm chung lệnh thiếu quyền với lệnh gọi sai tên công cụ, hệ quả của việc gateway trả cùng một thông báo \texttt{Unknown tool} cho cả hai. Về vận hành, số đo khởi động mới có năm lần ở tình huống khởi động ấm; thời gian dựng từ cụm trống và độ trễ gateway thêm vào mỗi lệnh chưa được đo; lớp bọc PowerShell chưa được chạy trực tiếp vì phiên đo chạy bên trong WSL; script dọn dẹp để nguyên hai nhóm container compose; và tracing chưa được cấu hình.
 
 \endgroup

@@ -78,7 +78,7 @@
 \titlespacing*{\paragraph}{0pt}{6pt}{6pt}
 
 % \heading{...}: đề mục lớn không đánh số (LỜI CẢM ƠN, A., B., C., ...)
-\newcommand{\heading}[1]{\clearpage\section*{#1}\addcontentsline{toc}{section}{#1}}
+\newcommand{\heading}[1]{\clearpage\phantomsection\section*{#1}\addcontentsline{toc}{section}{#1}}
 % \phan{...}: "PHẦN n: ..." trong mục B; \phan[]{...} để không sang trang mới
 \newcommand{\phan}[2][\clearpage]{#1\refstepcounter{section}%
   \section*{PHẦN \thesection: #2}\addcontentsline{toc}{phan}{PHẦN \thesection: #2}}
