@@ -1,12 +1,12 @@
 \heading{PHỤ LỤC}
 
-Các phụ lục trích ý chính của cấu hình và mã nguồn để người đọc đối chiếu với thiết kế ở Chương 4 mà không cần mở kho mã; phần lược bỏ được đánh dấu bằng dấu ba chấm. Bản đầy đủ của mọi tệp nằm trong kho mã công khai ở Phụ lục A.
+Các phụ lục trích ý chính của cấu hình và mã nguồn, để người đọc đối chiếu với thiết kế ở Chương 4 mà không phải mở kho mã. Phần lược bỏ được đánh dấu bằng dấu ba chấm. Bản đầy đủ của mọi tệp nằm trong kho mã công khai nêu ở Phụ lục A.
 
 \subsection*{Phụ lục A. Mã nguồn và dữ liệu}
 \phantomsection\addcontentsline{toc}{subsection}{Phụ lục A. Mã nguồn và dữ liệu}
 \textit{A.1. Kho mã}
 
-Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đề tài được công khai tại \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}, kèm hướng dẫn dựng lại hệ thống trong \texttt{QUICKSTART.md}. Bảng~\ref{tab:repo} chỉ ra vị trí của từng phần được nhắc trong báo cáo. Môi trường cần kind, kubectl, Helm, Docker có Compose (khoảng 8 GB bộ nhớ), Node.js và Python có gói \texttt{mcp} phiên bản 1.30.0. Trên Windows, \texttt{ops/up.ps1} dựng toàn bộ hệ thống qua WSL và \texttt{ops/down.ps1} xóa cụm; trên Linux, \texttt{scripts/up.sh} làm phần việc tương ứng.
+Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đề tài được công khai tại \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}, kèm hướng dẫn dựng lại hệ thống trong \texttt{QUICKSTART.md}. Bảng~\ref{tab:repo} chỉ ra từng phần được nhắc trong báo cáo nằm ở đâu. Để chạy lại, máy cần kind, kubectl, Helm, Docker có Compose với khoảng 8 GB bộ nhớ, Node.js, và Python có gói \texttt{mcp} phiên bản 1.30.0. Người dùng Windows dựng toàn bộ hệ thống qua WSL bằng \texttt{ops/up.ps1} và xóa cụm bằng \texttt{ops/down.ps1}. Trên Linux, \texttt{scripts/up.sh} đảm nhận phần việc tương ứng.
 
 \begin{table}[H]\centering\caption{Vị trí các thành phần trong kho mã}\label{tab:repo}
 {\singlespacing\renewcommand{\arraystretch}{1.15}\small
@@ -26,15 +26,15 @@ Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đ�
 
 \textit{A.2. Ghi chú về dữ liệu}
 
-Mọi dữ liệu trong đề tài là dữ liệu thử. Năm mock trả dữ liệu dựng sẵn cho đủ 21 công cụ; các công cụ mang tính ghi như \texttt{airflow\_trigger\_dag} hay \texttt{radar\_manage\_workload} chỉ trả kết quả mô phỏng, không gây tác dụng phụ. Cấu hình hiện tại trỏ ba target radar, OpenMetadata và Spark History sang phần mềm thật chạy cục bộ, nhưng các hệ thống này cũng chỉ chứa dữ liệu thử: radar đọc chính cụm kind của hệ thống, OpenMetadata có người dùng thử và một bảng mẫu do script cài đặt tạo ra, Spark History đọc ba event log mẫu của dự án gốc. Đề tài không dùng dữ liệu nghiệp vụ của đơn vị kiến tập.
+Mọi dữ liệu trong đề tài đều là dữ liệu thử. Năm mock trả dữ liệu dựng sẵn cho đủ 21 công cụ, và những công cụ mang tính ghi như \texttt{airflow\_trigger\_dag} hay \texttt{radar\_manage\_workload} chỉ trả kết quả mô phỏng, không gây tác dụng phụ nào. Cấu hình hiện tại trỏ ba target radar, OpenMetadata và Spark History sang phần mềm thật chạy cục bộ. Các hệ thống này cũng chỉ chứa dữ liệu thử, bởi radar đọc chính cụm kind của hệ thống, OpenMetadata có người dùng thử cùng một bảng mẫu do script cài đặt tạo ra, còn Spark History đọc ba event log mẫu của dự án gốc. Đề tài không dùng dữ liệu nghiệp vụ của đơn vị kiến tập.
 
-Bằng chứng kiểm thử chỉ lưu đầu ra đã lược bỏ bí mật, không có client secret, access token hay claim nhạy cảm. Secret của từng agent được sinh thẳng vào Kubernetes Secret mà không in ra màn hình; cấu hình realm chỉ chứa biến giữ chỗ như \texttt{\$\{CLUSTER\_OBSERVER\_AGENT\_SECRET\}}. Tài khoản \texttt{admin}/\texttt{admin} của Keycloak và Grafana cùng mật khẩu \texttt{password} của người dùng thử là giá trị mặc định, chỉ dành cho môi trường thử cục bộ, và phải được thay trước khi đưa cấu hình ra ngoài máy cá nhân.
+Bằng chứng kiểm thử chỉ lưu đầu ra đã lược bỏ bí mật, nên không chứa client secret, access token hay claim nhạy cảm. Secret của từng agent được sinh thẳng vào Kubernetes Secret, không in ra màn hình, và cấu hình realm chỉ giữ biến giữ chỗ như \texttt{\$\{CLUSTER\_OBSERVER\_AGENT\_SECRET\}}. Tài khoản \texttt{admin}/\texttt{admin} của Keycloak và Grafana, cùng mật khẩu \texttt{password} của người dùng thử, là giá trị mặc định chỉ dành cho môi trường thử cục bộ. Trước khi đưa cấu hình ra khỏi máy cá nhân, các giá trị này phải được thay.
 
 \subsection*{Phụ lục B. Cấu hình gateway}
 \phantomsection\addcontentsline{toc}{subsection}{Phụ lục B. Cấu hình gateway}
 \textit{B.1. Backend hợp nhất năm target}
 
-Một backend chứa cả năm target; \texttt{prefixMode: Always} tạo tên công cụ dạng \texttt{\{target\}\_\{tool\}}. Bốn target còn lại khai báo giống \texttt{dbt}, chỉ khác tên và địa chỉ.
+Một backend chứa cả năm target. Giá trị \texttt{Always} của \texttt{prefixMode} tạo tên công cụ dạng \texttt{\{target\}\_\{tool\}}. Bốn target còn lại khai báo giống hệt \texttt{dbt}, chỉ khác tên và địa chỉ.
 \begin{lstlisting}
 kind: AgentgatewayBackend
 spec:
@@ -48,7 +48,7 @@ spec:
 \end{lstlisting}
 \textit{B.2. Xác thực JWT và chuyển tiếp định danh}
 
-Chính sách gắn vào Gateway kiểm tra token, ghi đè ba header danh tính bằng claim đã kiểm tra và chuyển token gốc sang header nội bộ \texttt{x-caller-token}; chính sách thứ hai, gắn vào backend, xóa header này trước khi yêu cầu rời gateway (S3).
+Chính sách gắn vào Gateway kiểm tra token, ghi đè ba header danh tính bằng claim đã kiểm tra, rồi chuyển token gốc sang header nội bộ \texttt{x-caller-token}. Một chính sách thứ hai, gắn vào backend, xóa header này trước khi yêu cầu rời gateway (S3).
 \begin{lstlisting}
 traffic:
   jwtAuthentication:
