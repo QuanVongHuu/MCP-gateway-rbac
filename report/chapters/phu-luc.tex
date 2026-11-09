@@ -1,22 +1,40 @@
 \heading{PHỤ LỤC}
 
-Các phụ lục trích ý chính của cấu hình và mã nguồn; phần lược bỏ được đánh dấu bằng dấu ba chấm.
+Các phụ lục trích ý chính của cấu hình và mã nguồn để người đọc đối chiếu với thiết kế ở Chương 4 mà không cần mở kho mã; phần lược bỏ được đánh dấu bằng dấu ba chấm. Bản đầy đủ của mọi tệp nằm trong kho mã công khai ở Phụ lục A.
 
 \subsection*{Phụ lục A. Mã nguồn và dữ liệu}
-\addcontentsline{toc}{subsection}{Phụ lục A. Mã nguồn và dữ liệu}
+\phantomsection\addcontentsline{toc}{subsection}{Phụ lục A. Mã nguồn và dữ liệu}
 \textit{A.1. Kho mã}
 
-Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đề tài được công khai tại \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}, kèm hướng dẫn dựng lại hệ thống. Môi trường cần kind, kubectl, Helm, Docker có Compose (khoảng 8 GB bộ nhớ), Node.js và Python có gói \texttt{mcp} phiên bản 1.30.0.
+Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đề tài được công khai tại \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}, kèm hướng dẫn dựng lại hệ thống trong \texttt{QUICKSTART.md}. Bảng~\ref{tab:repo} chỉ ra vị trí của từng phần được nhắc trong báo cáo. Môi trường cần kind, kubectl, Helm, Docker có Compose (khoảng 8 GB bộ nhớ), Node.js và Python có gói \texttt{mcp} phiên bản 1.30.0. Trên Windows, \texttt{ops/up.ps1} dựng toàn bộ hệ thống qua WSL và \texttt{ops/down.ps1} xóa cụm; trên Linux, \texttt{scripts/up.sh} làm phần việc tương ứng.
+
+\begin{table}[H]\centering\caption{Vị trí các thành phần trong kho mã}\label{tab:repo}
+{\singlespacing\renewcommand{\arraystretch}{1.15}\small
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{5.2cm}|X|}\hline
+\textbf{Đường dẫn} & \textbf{Nội dung} \\ \hline
+\path{deploy/agentgateway/} & Gateway, HTTPRoute và backend hợp nhất năm target (Phụ lục B.1) \\ \hline
+\path{deploy/auth/jwt.yaml} & Xác thực JWT và chuyển tiếp định danh (Phụ lục B.2) \\ \hline
+\path{rbac/tool-access.yaml} & Chính sách phân quyền theo công cụ, nguồn sự thật duy nhất (Phụ lục B.3) \\ \hline
+\path{deploy/network/backends.yaml} & NetworkPolicy cô lập backend (Phụ lục B.4) \\ \hline
+\path{deploy/keycloak/} & Realm, client của agent và script nạp (Phụ lục D) \\ \hline
+\path{servers/} & Năm mock MCP server và module dùng chung (Phụ lục C) \\ \hline
+\path{tests/} & Kiểm thử tĩnh, kiểm thử đầu cuối và ma trận kỳ vọng \path{tests/expected/agent-tool-access.json} \\ \hline
+\path{evidence/} & Đầu ra kiểm thử đã lược bỏ bí mật, dùng ở Chương 5 \\ \hline
+\path{ops/}, \path{scripts/} & Script dựng, dọn dẹp và đo thời gian (Phụ lục E) \\ \hline
+\path{observability/} & Access log, Loki, Alloy và dashboard Grafana (Phụ lục F) \\ \hline
+\end{tabularx}}\end{table}
 
 \textit{A.2. Ghi chú về dữ liệu}
 
 Mọi dữ liệu trong đề tài là dữ liệu thử. Năm mock trả dữ liệu dựng sẵn cho đủ 21 công cụ; các công cụ mang tính ghi như \texttt{airflow\_trigger\_dag} hay \texttt{radar\_manage\_workload} chỉ trả kết quả mô phỏng, không gây tác dụng phụ. Cấu hình hiện tại trỏ ba target radar, OpenMetadata và Spark History sang phần mềm thật chạy cục bộ, nhưng các hệ thống này cũng chỉ chứa dữ liệu thử: radar đọc chính cụm kind của hệ thống, OpenMetadata có người dùng thử và một bảng mẫu do script cài đặt tạo ra, Spark History đọc ba event log mẫu của dự án gốc. Đề tài không dùng dữ liệu nghiệp vụ của đơn vị kiến tập.
 
-Bằng chứng kiểm thử chỉ lưu đầu ra đã lược bỏ bí mật, không có client secret, access token hay claim nhạy cảm. Secret của từng agent được sinh thẳng vào Kubernetes Secret mà không in ra màn hình; cấu hình realm chỉ chứa biến giữ chỗ như \texttt{\$\{CLUSTER\_OBSERVER\_AGENT\_SECRET\}}. Tài khoản \texttt{admin}/\texttt{admin} của Keycloak và Grafana cùng mật khẩu \texttt{password} của người dùng thử là giá trị mặc định, chỉ dành cho môi trường thử cục bộ.
+Bằng chứng kiểm thử chỉ lưu đầu ra đã lược bỏ bí mật, không có client secret, access token hay claim nhạy cảm. Secret của từng agent được sinh thẳng vào Kubernetes Secret mà không in ra màn hình; cấu hình realm chỉ chứa biến giữ chỗ như \texttt{\$\{CLUSTER\_OBSERVER\_AGENT\_SECRET\}}. Tài khoản \texttt{admin}/\texttt{admin} của Keycloak và Grafana cùng mật khẩu \texttt{password} của người dùng thử là giá trị mặc định, chỉ dành cho môi trường thử cục bộ, và phải được thay trước khi đưa cấu hình ra ngoài máy cá nhân.
 
 \subsection*{Phụ lục B. Cấu hình gateway}
-\addcontentsline{toc}{subsection}{Phụ lục B. Cấu hình gateway}
+\phantomsection\addcontentsline{toc}{subsection}{Phụ lục B. Cấu hình gateway}
 \textit{B.1. Backend hợp nhất năm target}
+
+Một backend chứa cả năm target; \texttt{prefixMode: Always} tạo tên công cụ dạng \texttt{\{target\}\_\{tool\}}. Bốn target còn lại khai báo giống \texttt{dbt}, chỉ khác tên và địa chỉ.
 \begin{lstlisting}
 kind: AgentgatewayBackend
 spec:
@@ -29,6 +47,8 @@ spec:
     ...
 \end{lstlisting}
 \textit{B.2. Xác thực JWT và chuyển tiếp định danh}
+
+Chính sách gắn vào Gateway kiểm tra token, ghi đè ba header danh tính bằng claim đã kiểm tra và chuyển token gốc sang header nội bộ \texttt{x-caller-token}; chính sách thứ hai, gắn vào backend, xóa header này trước khi yêu cầu rời gateway (S3).
 \begin{lstlisting}
 traffic:
   jwtAuthentication:
@@ -52,6 +72,8 @@ traffic:
 backend: {transformation: {request: {remove: [x-caller-token]}}}
 \end{lstlisting}
 \textit{B.3. Phân quyền theo công cụ}
+
+Mọi quy tắc nằm trong một chính sách \texttt{Allow} duy nhất; các biểu thức được nối bằng phép HOẶC, và công cụ không khớp biểu thức nào vừa bị ẩn vừa bị từ chối.
 \begin{lstlisting}
 backend:
   mcp:
@@ -68,6 +90,8 @@ backend:
         - 'has(jwt.roles) && "platform_admin" in jwt.roles'
 \end{lstlisting}
 \textit{B.4. Cô lập mạng}
+
+Chính sách chọn mọi pod trong namespace \texttt{mcp} và chỉ nhận kết nối từ namespace của gateway (S4).
 \begin{lstlisting}
 kind: NetworkPolicy
 metadata: {name: backends-from-gateway-only, namespace: mcp}
@@ -81,7 +105,7 @@ spec:
 \end{lstlisting}
 
 \subsection*{Phụ lục C. Mock MCP server}
-\addcontentsline{toc}{subsection}{Phụ lục C. Mock MCP server}
+\phantomsection\addcontentsline{toc}{subsection}{Phụ lục C. Mock MCP server}
 \textit{C.1. Bộ khung chung}
 \begin{lstlisting}[language=Python]
 def new_server(name):
@@ -141,7 +165,7 @@ airflow & pause\_dag & Ghi & Tạm dừng DAG \\ \hline
 \end{longtable}}
 
 \subsection*{Phụ lục D. Danh tính AI Agent}
-\addcontentsline{toc}{subsection}{Phụ lục D. Danh tính AI Agent}
+\phantomsection\addcontentsline{toc}{subsection}{Phụ lục D. Danh tính AI Agent}
 \textit{D.1. Định nghĩa một client agent}
 \begin{lstlisting}
 {"clientId": "cluster-observer-agent",
@@ -166,7 +190,7 @@ kcadm.sh add-roles --uusername service-account-$cid --rolename $role
 \end{lstlisting}
 
 \subsection*{Phụ lục E. Tự động hóa triển khai}
-\addcontentsline{toc}{subsection}{Phụ lục E. Tự động hóa triển khai}
+\phantomsection\addcontentsline{toc}{subsection}{Phụ lục E. Tự động hóa triển khai}
 \textit{E.1. Lớp bọc PowerShell}
 \begin{lstlisting}
 $repoDir = (& wsl.exe -d $Distro -- wslpath -u $PSScriptRoot).Trim()
@@ -195,7 +219,7 @@ if ($LASTEXITCODE -ne 0) { Write-Error "Failed to delete ..."; exit $LASTEXITCOD
 \end{lstlisting}
 
 \subsection*{Phụ lục F. Giám sát allow/deny}
-\addcontentsline{toc}{subsection}{Phụ lục F. Giám sát allow/deny}
+\phantomsection\addcontentsline{toc}{subsection}{Phụ lục F. Giám sát allow/deny}
 \textit{F.1. Bổ sung trường vào access log}
 \begin{lstlisting}
 frontend:
