@@ -45,21 +45,25 @@ Với vai trò AI Engineer, mục tiêu cá nhân của sinh viên Huy là bảo
 % =====================================================================
 \subsection{Phân công trong nhóm}
 
-Bảng~\ref{tab:phancong} trình bày phân công theo thành phần hệ thống, dựa trên lịch sử thay đổi của mã nguồn; cột ``Tham gia'' ghi nhận người đã đóng góp hoặc sửa lỗi ở thành phần mình không phụ trách chính.
+Bảng~\ref{tab:phancong} trình bày phân công theo từng công việc trong kế hoạch của nhóm, kèm thời gian thực hiện; cột ``Tham gia'' ghi nhận người hỗ trợ ở công việc mình không phụ trách chính.
 
 \begin{table}[H]\centering\caption{Phân công thực hiện}\label{tab:phancong}
-{\singlespacing\renewcommand{\arraystretch}{1.2}
-\begin{tabularx}{\textwidth}{|X|>{\centering\arraybackslash}p{3cm}|>{\centering\arraybackslash}p{2.4cm}|}\hline
-\textbf{Thành phần} & \textbf{Phụ trách chính} & \textbf{Tham gia} \\ \hline
-Gateway, định tuyến và hợp nhất năm backend & Quân & Huy \\ \hline
-Mock MCP server (21 công cụ) và backend thật & Quân & -- \\ \hline
-Danh tính AI Agent trên Keycloak, xác thực JWT & Huy & Quân \\ \hline
-Phân quyền theo công cụ & Huy & Quân \\ \hline
-Cô lập mạng bằng NetworkPolicy & Huy & -- \\ \hline
-Kiểm chứng tự động và ma trận kỳ vọng & Huy & Quân \\ \hline
-Giám sát allow/deny (access log, Loki, Grafana) & Huy & -- \\ \hline
-Tự động hóa triển khai & Quân (bản Linux), Huy (bản Windows) & -- \\ \hline
-Viết báo cáo & \multicolumn{2}{c|}{Chia theo chương, đọc chéo} \\ \hline
+{\singlespacing\renewcommand{\arraystretch}{1.2}\small
+\begin{tabularx}{\textwidth}{|X|>{\centering\arraybackslash}p{2.5cm}|>{\centering\arraybackslash}p{2.4cm}|>{\centering\arraybackslash}p{1.6cm}|}\hline
+\textbf{Công việc} & \textbf{Thời gian} & \textbf{Phụ trách chính} & \textbf{Tham gia} \\ \hline
+Dựng MCP Gateway trên Kubernetes & 30/09 -- 02/10 & \multicolumn{2}{c|}{Cả nhóm} \\ \hline
+Mock MCP server cho năm backend (21 công cụ) & 05/10 -- 07/10 & Quân & Huy \\ \hline
+Khảo sát khả năng quan sát của agentgateway (log, metric, trace, admin UI) & 05/10 -- 07/10 & Huy & -- \\ \hline
+Thí nghiệm chồng lấn chính sách phân quyền & 06/10 -- 07/10 & Quân & -- \\ \hline
+Realm Keycloak, xác thực JWT và quy tắc phân quyền theo công cụ & 07/10 -- 11/10 & Quân & -- \\ \hline
+Dựng và dọn môi trường bằng một lệnh & 06/10 -- 12/10 & \multicolumn{2}{c|}{Quân (bản Linux), Huy (bản Windows)} \\ \hline
+Dashboard allow/deny trên Grafana & 09/10 -- 12/10 & Huy & -- \\ \hline
+Kiểm chứng lọc danh mục công cụ theo vai trò & 12/10 & Quân & -- \\ \hline
+Kiểm chứng từ chối lệnh gọi và các trường hợp biên & 13/10 & Quân & -- \\ \hline
+Tổng hợp kết quả giai đoạn 1 vào báo cáo nháp & 12/10 -- 15/10 & Quân & -- \\ \hline
+Danh tính AI Agent, cô lập mạng bằng NetworkPolicy và tài liệu bổ sung & 22/10 -- 27/10 & Huy & -- \\ \hline
+Hoàn thiện README và tài liệu dự án & 30/10 -- 04/11 & Quân & -- \\ \hline
+Viết báo cáo & -- & \multicolumn{2}{c|}{Chia theo chương, đọc chéo} \\ \hline
 \end{tabularx}}\end{table}
 
 % =====================================================================

@@ -30,7 +30,7 @@ O2 & Vận hành & Quan sát trực quan kết quả allow/deny theo người d�
 
 Hệ thống gồm năm khối, mỗi khối trong một namespace Kubernetes riêng (Hình~\ref{fig:arch}), để ranh giới chức năng đồng thời là ranh giới đặt quy tắc mạng. Khối client là AI Agent hoặc MCP Inspector trên máy cá nhân; khối định danh là Keycloak; khối gateway là agentgateway, nơi tập trung mọi quyết định bảo mật; khối backend gồm năm MCP server; khối giám sát gồm Alloy, Loki và Grafana. Ba backend radar, OpenMetadata và Spark History dùng phần mềm thật, còn dbt và Airflow dùng mock; mock của cả năm hệ thống luôn chạy sẵn để câu hỏi ``gateway có phân quyền đúng không'' được kiểm thử độc lập với độ ổn định của phần mềm thật. Mọi quy tắc bảo mật được khai báo bằng tài nguyên Kubernetes thay vì viết mã cho gateway, đổi lại hệ thống bị giới hạn trong những gì agentgateway hỗ trợ sẵn.
 
-\begin{figure}[htbp]\centering\includegraphics[width=0.72\textwidth]{system-architecture.png}
+\begin{figure}[htbp]\centering\includegraphics[width=1\textwidth]{system-architecture.png}
 \caption{Kiến trúc tổng thể hệ thống}\label{fig:arch}\end{figure}
 
 \subsubsection{Góc nhìn triển khai trên Docker}
@@ -166,6 +166,44 @@ no-access & (không có) & 0 \\ \hline
 \end{tabularx}}\end{table}
 
 Mỗi agent có secret riêng để có thể thu hồi từng agent mà không ảnh hưởng các agent khác. Secret được sinh ngẫu nhiên dài 256 bit, ghi thẳng vào Kubernetes Secret, không in ra màn hình và không lưu vào kho mã. Bước sinh secret giữ nguyên secret đã có, và dừng lại nếu chỉ một phần secret tồn tại, vì sinh lại một phần sẽ làm Kubernetes và Keycloak giữ hai giá trị khác nhau và agent không xin được token. Khi nạp client, giá trị giữ chỗ trong file cấu hình được thay bằng secret đọc từ Kubernetes ngay lúc chạy.
+
+% =====================================================================
+\subsection{Ma trận phân quyền theo vai trò}\label{sec:rolematrix}
+
+Bảng~\ref{tab:rolematrix} tổng hợp quyền của từng vai trò trên năm hệ thống, gồm vai trò của người dùng, vai trò năng lực của agent và các tổ hợp nhiều vai trò. ``Đọc'' là toàn bộ công cụ đọc của hệ thống đó, ``Đọc + ghi'' là thêm công cụ ghi hoặc thực thi (Bảng~\ref{tab:tools}), cột ``Tổng'' là số công cụ được phép. Mọi quyền trong bảng đều được khai báo trong một chính sách Allow duy nhất; công cụ không có quy tắc nào khớp thì bị ẩn khỏi danh mục và bị từ chối khi gọi.
+
+\begin{table}[H]\centering\caption{Ma trận Vai trò -- Hệ thống -- Công cụ được phép}\label{tab:rolematrix}
+{\singlespacing\renewcommand{\arraystretch}{1.15}\setlength{\tabcolsep}{4pt}\small
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}p{3.3cm}|*{5}{>{\centering\arraybackslash}X|}c|}\hline
+\textbf{Vai trò} & \textbf{radar} & \textbf{spark-history} & \textbf{open-\allowbreak metadata} & \textbf{dbt} & \textbf{airflow} & \textbf{Tổng} \\ \hline
+\multicolumn{7}{|l|}{\textit{Vai trò người dùng (theo chức danh)}} \\ \hline
+analyst & -- & -- & Đọc & -- & -- & 3 \\ \hline
+bi\_engineer & -- & -- & Đọc + ghi & -- & -- & 4 \\ \hline
+data\_engineer & Đọc & Đọc & Đọc & Đọc & Đọc & 16 \\ \hline
+data\_engineer + bi\_engineer & Đọc & Đọc & Đọc + ghi & Đọc & Đọc & 17 \\ \hline
+data\_admin & Tất cả & Tất cả & Tất cả & Tất cả & Tất cả & 21 \\ \hline
+(không có vai trò) & -- & -- & -- & -- & -- & 0 \\ \hline
+\multicolumn{7}{|l|}{\textit{Vai trò của AI Agent (theo năng lực)}} \\ \hline
+kube\_viewer & Đọc & -- & -- & -- & -- & 3 \\ \hline
+kube\_operator & Đọc + ghi & -- & -- & -- & -- & 4 \\ \hline
+spark\_viewer & -- & Đọc & -- & -- & -- & 3 \\ \hline
+metadata\_viewer & -- & -- & Đọc & -- & -- & 3 \\ \hline
+metadata\_editor & -- & -- & Đọc + ghi & -- & -- & 4 \\ \hline
+dbt\_viewer & -- & -- & -- & Đọc & -- & 4 \\ \hline
+dbt\_operator & -- & -- & -- & Đọc + ghi & -- & 5 \\ \hline
+airflow\_viewer & -- & -- & -- & -- & Đọc & 3 \\ \hline
+airflow\_operator & -- & -- & -- & -- & Đọc + ghi & 5 \\ \hline
+kube\_operator + spark\_viewer & Đọc + ghi & Đọc & -- & -- & -- & 7 \\ \hline
+platform\_admin (khẩn cấp) & Tất cả & Tất cả & Tất cả & Tất cả & Tất cả & 21 \\ \hline
+\end{tabularx}}\end{table}
+
+Ma trận dựa trên ba nguyên tắc. Thứ nhất là quyền tối thiểu: mỗi vai trò chỉ nhận công cụ cần cho công việc của mình. Thứ hai là tách đọc và ghi: công cụ ghi hoặc thực thi làm thay đổi trạng thái hệ thống (khởi động lại workload, sửa metadata, chạy kiểm thử dbt, kích hoạt hoặc tạm dừng DAG) nên chỉ cấp cho vai trò cần đúng thao tác đó, không đi kèm theo quyền đọc. Thứ ba là cộng quyền: các quy tắc được kết hợp bằng phép OR, nên người dùng hoặc agent có nhiều vai trò nhận hợp các quyền mà không cần quy tắc riêng cho từng tổ hợp.
+
+Với người dùng, \texttt{analyst} chỉ cần tìm và hiểu dữ liệu nên nhận ba công cụ đọc của OpenMetadata (tìm kiếm, xem chi tiết, xem lineage), không được sửa metadata và không chạm vào hạ tầng, vì log và tình trạng pipeline không thuộc công việc phân tích và có thể chứa dữ liệu nội bộ. \texttt{bi\_engineer} xây báo cáo trên các bảng dữ liệu và chịu trách nhiệm mô tả, gắn thẻ cho chúng, nên được thêm \texttt{patch\_entity}. \texttt{data\_engineer} vận hành pipeline và phải chẩn đoán sự cố xuyên suốt năm hệ thống (log pod, điểm nghẽn Spark, lineage, tình trạng model dbt, log task Airflow), nên được đọc ở cả năm; ngược lại cả sáu công cụ ghi đều bị giữ lại vì chúng tác động lên hệ thống đang chạy, phải đi qua \texttt{data\_admin} hoặc agent vận hành chuyên trách. \texttt{data\_admin} không bị giới hạn theo target, nên một backend thêm vào sau cũng tự động thuộc quyền quản trị; vai trò này chỉ dành cho số ít người và mọi lệnh gọi vẫn được ghi log. Token hợp lệ nhưng không có vai trò không nhận công cụ nào, cho thấy xác thực thành công không đồng nghĩa với được phân quyền.
+
+Tổ hợp \texttt{data\_engineer} + \texttt{bi\_engineer} (người dùng \texttt{multi.user}) nhận 17 công cụ, đúng bằng 16 công cụ của \texttt{data\_engineer} cộng \texttt{patch\_entity} của \texttt{bi\_engineer}. Đây là lý do nhóm không dùng quy tắc Deny để giới hạn theo vai trò: thí nghiệm chồng lấn chính sách cho thấy Deny được xét theo người dùng chứ không theo vai trò và luôn thắng Allow, nên nếu chặn radar với \texttt{bi\_engineer} thì người dùng giữ cả hai vai trò cũng mất radar dù \texttt{data\_engineer} cho phép. Deny chỉ phù hợp với lệnh cấm tuyệt đối áp dụng cho mọi vai trò.
+
+Với agent, vai trò được chia theo năng lực trên từng hệ thống (mục~\ref{sec:agent}). Mức \textit{operator} hoặc \textit{editor} bao gồm luôn quyền đọc của mức \textit{viewer}, vì agent cần đọc trạng thái trước khi hành động. Spark History chỉ có mức \textit{viewer} vì danh mục hiện tại không có công cụ ghi cho hệ thống này. Tổ hợp \texttt{kube\_operator} + \texttt{spark\_viewer} của agent xử lý sự cố cho 7 công cụ, ít hơn nhiều so với 16 công cụ nếu cấp \texttt{data\_engineer}. \texttt{platform\_admin} có toàn quyền như \texttt{data\_admin} nhưng chỉ dùng khi khẩn cấp và để kiểm chứng đủ 21 công cụ, không gán cho agent làm việc thường ngày.
 
 % =====================================================================
 \subsection{Tự động hóa triển khai}\label{sec:auto}
