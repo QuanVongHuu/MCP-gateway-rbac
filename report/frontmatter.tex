@@ -3,10 +3,10 @@
 \begin{tikzpicture}[remember picture,overlay]
   \node[inner sep=0] at (current page.center)
     {\includegraphics[width=\paperwidth,height=\paperheight]{cover-bg.jpg}};
-  \node[font=\bfseries\fontsize{16}{20}\selectfont] at ([yshift=-45mm]current page.north) {\tenkhoa};
-  \node[font=\bfseries,align=center] at ([yshift=-123mm]current page.north)
+  \node[font=\bfseries\fontsize{18}{24}\selectfont] at ([yshift=-45mm]current page.north) {\tenkhoa};
+  \node[font=\bfseries\fontsize{15}{20}\selectfont,align=center] at ([yshift=-123mm]current page.north)
     {BÁO CÁO KIẾN TẬP\\[4pt] NGÀNH \tennganh\\[4pt] (CHUYÊN NGÀNH \tenchuyennganh)};
-  \node[font=\bfseries,align=center,text width=16.5cm] at ([yshift=-164mm]current page.north) {\tendetai};
+  \node[font=\bfseries\fontsize{15}{22}\selectfont,align=center,text width=17cm] at ([yshift=-164mm]current page.north) {\tendetai};
   \node[anchor=north west,align=left] at ([xshift=90mm,yshift=-194mm]current page.north west)
     {\begin{tabular}{@{}l@{\ }l@{\quad}l@{}}
      \textbf{GVHD:} & \multicolumn{2}{l}{\gvhd}\\[4pt]
@@ -24,13 +24,13 @@ Nhóm xin cảm ơn Khoa Hệ thống thông tin, Trường Đại học Kinh t�
 
 Nhóm xin cảm ơn \gvhd{}, giảng viên hướng dẫn, đã nhận hướng dẫn nhóm và dành thời gian đọc, góp ý cho đề tài cũng như cho bản báo cáo này.
 
-Nhóm xin cảm ơn \coquan{} đã tiếp nhận nhóm kiến tập, và cảm ơn người hướng dẫn tại đơn vị, \mentor, đã định hướng và hỗ trợ nhóm trong suốt thời gian kiến tập. Đề tài bắt nguồn từ một nhu cầu rất cụ thể của nhóm dữ liệu, đó là cho AI Agent dùng công cụ trên Kubernetes, Spark, OpenMetadata, dbt và Airflow mà vẫn biết rõ agent nào được làm gì và đã làm gì. Bài toán ấy dạy nhóm một thói quen. Trước mỗi quy tắc cấu hình, nhóm tự hỏi nếu viết sai thì agent nào sẽ nhận quyền mà nó không nên có.
+Nhóm xin cảm ơn \coquan{} đã tiếp nhận nhóm kiến tập, và cảm ơn người hướng dẫn tại đơn vị, anh \mentor, đã định hướng và hỗ trợ nhóm trong suốt thời gian kiến tập. Đề tài bắt nguồn từ một nhu cầu rất cụ thể của nhóm dữ liệu, đó là cho AI Agent dùng công cụ trên Kubernetes, Spark, OpenMetadata, dbt và Airflow mà vẫn biết rõ agent nào được làm gì và đã làm gì. Bài toán ấy dạy nhóm một thói quen. Trước mỗi quy tắc cấu hình, nhóm tự hỏi nếu viết sai cấu hình thì agent nào sẽ nhận quyền mà nó không nên có.
 
-Sản phẩm trong báo cáo mới là bản chứng minh khái niệm chạy trên một cụm Kubernetes cục bộ, và hiểu biết của nhóm về vận hành hệ thống thật hẳn còn nhiều chỗ chưa tới. Nhóm mong tiếp tục nhận được góp ý của giảng viên hướng dẫn và đơn vị để hoàn thiện đề tài.
+Sản phẩm trong báo cáo là bản chứng minh khái niệm chạy trên một cụm Kubernetes cục bộ, và chưa được triển khai lên máy chủ thật. Nhóm mong tiếp tục nhận được góp ý của giảng viên hướng dẫn và đơn vị để hoàn thiện đề tài.
 
 \vspace{12pt}
-\hfill\begin{minipage}{8cm}\centering
-TP. Hồ Chí Minh, ngày ..... tháng ..... năm .......\\
+\hfill\begin{minipage}{10cm}\centering
+TP. Hồ Chí Minh, ngày 11 tháng 11 năm 2026\\
 \textbf{Nhóm sinh viên thực hiện}\\[4pt]
 \svthA\\
 \svthB
@@ -41,8 +41,8 @@ TP. Hồ Chí Minh, ngày ..... tháng ..... năm .......\\
 Nhóm sinh viên xin cam kết báo cáo kiến tập này là kết quả làm việc của chính nhóm trong thời gian kiến tập tại \coquan, dưới sự hướng dẫn của \gvhd{} và người hướng dẫn tại đơn vị \mentor. Các số liệu và kết quả kiểm chứng trong báo cáo được thu thập từ môi trường thử nghiệm do nhóm tự dựng, trung thực và chưa từng được công bố trong bất kỳ báo cáo nào khác. Những nội dung tham khảo từ tài liệu, công trình của tác giả khác đều được trích dẫn đầy đủ trong danh mục tài liệu tham khảo. Báo cáo không sử dụng dữ liệu nghiệp vụ hay thông tin bảo mật của đơn vị kiến tập. Nhóm xin chịu hoàn toàn trách nhiệm về nội dung của báo cáo.
 
 \vspace{12pt}
-\hfill\begin{minipage}{8cm}\centering
-TP. Hồ Chí Minh, ngày ..... tháng ..... năm .......\\
+\hfill\begin{minipage}{10cm}\centering
+TP. Hồ Chí Minh, ngày 11 tháng 11 năm 2026\\
 \textbf{Nhóm sinh viên thực hiện}\\[4pt]
 \svthA\\
 \svthB
@@ -77,7 +77,7 @@ Ghi chú:
 \textbf{\textit{Loại C: 1đ; Loại D: 0,5đ}}
 \par}
 \vspace{6pt}
-{\renewcommand{\arraystretch}{1.4}\noindent
+{\singlespacing\renewcommand{\arraystretch}{1.4}\noindent
 \begin{tabularx}{\textwidth}{|X|c|c|c|c|}\hline
 \multirow{2}{*}{\centering\textbf{Nội dung đánh giá}} & \multicolumn{4}{c|}{\textbf{Xếp loại}} \\ \cline{2-5}
  & \makebox[0.8cm]{A} & \makebox[0.8cm]{B} & \makebox[0.8cm]{C} & \makebox[0.8cm]{D} \\ \hline
@@ -170,15 +170,15 @@ GVHD: \gvhd
 \end{longtable}}
 
 % ================= MỤC LỤC & CÁC DANH MỤC =================
-\clearpage
+\clearpage\phantomsection
 \addcontentsline{toc}{section}{MỤC LỤC}
 {\setlength{\parskip}{0pt}\tableofcontents}
 
-\clearpage
+\clearpage\phantomsection
 \addcontentsline{toc}{section}{DANH MỤC HÌNH ẢNH}
 {\setlength{\parskip}{0pt}\renewcommand{\numberline}[1]{Hình #1: }\listoffigures}
 
-\clearpage
+\clearpage\phantomsection
 \addcontentsline{toc}{section}{DANH MỤC BẢNG}
 {\setlength{\parskip}{0pt}\renewcommand{\numberline}[1]{Bảng #1: }\listoftables}
 
@@ -191,10 +191,8 @@ AI & Artificial Intelligence & Trí tuệ nhân tạo \\ \hline
 API & Application Programming Interface & Giao diện lập trình ứng dụng \\ \hline
 CEL & Common Expression Language & Ngôn ngữ biểu thức của chính sách \\ \hline
 CI/CD & Continuous Integration / Continuous Delivery & Tích hợp và triển khai liên tục \\ \hline
-CNTT & Công nghệ thông tin & Information Technology \\ \hline
 CRD & Custom Resource Definition & Tài nguyên tùy biến của Kubernetes \\ \hline
 DAG & Directed Acyclic Graph & Đồ thị có hướng không chu trình, đơn vị luồng công việc của Airflow \\ \hline
-HĐQT & Hội đồng quản trị & Board of Directors \\ \hline
 HTTP & Hypertext Transfer Protocol & Giao thức truyền siêu văn bản \\ \hline
 IaC & Infrastructure as Code & Quản lý hạ tầng bằng mã \\ \hline
 IP & Internet Protocol & Giao thức Internet \\ \hline
@@ -208,7 +206,6 @@ NHNN & Ngân hàng Nhà nước Việt Nam & State Bank of Vietnam \\ \hline
 NIST & National Institute of Standards and Technology & Viện Tiêu chuẩn và Công nghệ Quốc gia Hoa Kỳ \\ \hline
 OAuth & Open Authorization & Khung chuẩn ủy quyền truy cập \\ \hline
 OIDC & OpenID Connect & Giao thức xác thực trên OAuth 2.0 \\ \hline
-QLRR & Quản lý rủi ro & Risk Management \\ \hline
 RBAC & Role-Based Access Control & Kiểm soát truy cập theo vai trò \\ \hline
 RFC & Request for Comments & Văn bản đặc tả chuẩn của IETF \\ \hline
 SDK & Software Development Kit & Bộ công cụ phát triển phần mềm \\ \hline

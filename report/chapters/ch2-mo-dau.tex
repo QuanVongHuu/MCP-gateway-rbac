@@ -25,15 +25,7 @@ Thứ năm, khó kiểm chứng chính sách. Thử quy tắc phân quyền trê
 % =====================================================================
 \subsection{Mục tiêu}
 
-\subsubsection{Mục tiêu chung của nhóm}
-
 Mục tiêu chung là xây dựng một hệ thống chứng minh khái niệm (proof of concept) trong đó mọi lệnh gọi công cụ của AI Agent đi qua một điểm truy cập MCP duy nhất là gateway. Gateway phải xác thực từng agent bằng JWT do Keycloak cấp, phân quyền đến từng công cụ theo nguyên tắc mặc định từ chối, là con đường duy nhất tới backend nhờ NetworkPolicy, và ghi lại mọi quyết định cho phép hoặc từ chối kèm danh tính agent. Hệ thống được xây chủ yếu bằng cấu hình các thành phần mã nguồn mở có sẵn. Mục tiêu được xem là đạt khi có bằng chứng rằng cả 21 công cụ gọi được qua gateway, kết quả cho phép và từ chối của mọi agent khớp với ma trận quyền kỳ vọng, lệnh gọi thẳng tới backend bị chặn, và toàn bộ môi trường dựng lại được bằng một lệnh.
-
-\subsubsection{Mục tiêu của cá nhân}
-
-Với vai trò AI Engineer, mục tiêu cá nhân của sinh viên Huy là bảo đảm các AI Agent được vận hành như những chủ thể có danh tính, quyền hạn và hành vi kiểm soát được, cụ thể hóa thành bốn kết quả. Thứ nhất, mỗi agent có một client riêng trên Keycloak và chỉ nhận vai trò theo năng lực cần cho nhiệm vụ, với quyền đọc và quyền ghi tách thành các vai trò khác nhau. Thứ hai, quyền của agent kiểm chứng được tự động: ma trận Agent -- Vai trò -- Công cụ ở dạng máy đọc được, và bộ kiểm thử dùng nó để kiểm tra token, danh mục công cụ, lệnh được phép và lệnh bị từ chối. Thứ ba, mọi hành động của agent truy vết được qua access log của gateway và dashboard Grafana. Thứ tư, môi trường vận hành agent dựng lại được bằng một script khởi động và một script dọn dẹp. Ngoài phần phụ trách chính, sinh viên tham gia rà soát và sửa lỗi ở định tuyến gateway, cấu hình xác thực và ma trận phân quyền.
-
-\todo{Mục tiêu cá nhân của Quân}
 
 % =====================================================================
 \subsection{Đối tượng và phạm vi}
@@ -41,30 +33,6 @@ Với vai trò AI Engineer, mục tiêu cá nhân của sinh viên Huy là bảo
 Đối tượng nghiên cứu là cơ chế kiểm soát truy cập của AI Agent tới công cụ MCP thông qua gateway, trên bốn khía cạnh: danh tính, phân quyền, cô lập mạng và kiểm toán. Hệ thống được triển khai dạng chứng minh khái niệm trên một cụm Kubernetes cục bộ dựng bằng kind, với agentgateway 1.5.0 và Keycloak 26.2.5. Cả năm hệ thống đều có bản giả lập (mock), tổng cộng 21 công cụ, dùng để kiểm thử phân quyền; các công cụ ghi giữ nguyên hình thức nhưng không gây tác dụng phụ. Radar, OpenMetadata và Spark History chạy thêm bản thật để kiểm tra khả năng hoạt động qua gateway. Đề tài chỉ xét agent tự trị, tự xác thực bằng luồng client credentials của OAuth 2.0 \parencite{rfc6749}, với mười danh tính gồm chín agent chức năng và một agent không có vai trò dùng để kiểm thử từ chối.
 
 Đề tài không triển khai ở môi trường production, nên không xét tính sẵn sàng cao, kho quản lý bí mật chuyên dụng hay đo hiệu năng. Phân quyền ở mức tài nguyên trên backend thật, trao đổi token cho OpenMetadata và trường hợp agent hành động thay mặt người dùng mới dừng ở mức thiết kế; agent gọi agent, phê duyệt từng lệnh gọi và lọc nội dung độc hại không thuộc đề tài.
-
-% =====================================================================
-\subsection{Phân công trong nhóm}
-
-Bảng~\ref{tab:phancong} trình bày phân công theo từng công việc trong kế hoạch của nhóm, kèm thời gian thực hiện; cột ``Tham gia'' ghi nhận người hỗ trợ ở công việc mình không phụ trách chính.
-
-\begin{table}[H]\centering\caption{Phân công thực hiện}\label{tab:phancong}
-{\singlespacing\renewcommand{\arraystretch}{1.2}\small
-\begin{tabularx}{\textwidth}{|X|>{\centering\arraybackslash}p{2.5cm}|>{\centering\arraybackslash}p{2.4cm}|>{\centering\arraybackslash}p{1.6cm}|}\hline
-\textbf{Công việc} & \textbf{Thời gian} & \textbf{Phụ trách chính} & \textbf{Tham gia} \\ \hline
-Dựng MCP Gateway trên Kubernetes & 30/09 -- 02/10 & \multicolumn{2}{c|}{Cả nhóm} \\ \hline
-Mock MCP server cho năm backend (21 công cụ) & 05/10 -- 07/10 & Quân & Huy \\ \hline
-Khảo sát khả năng quan sát của agentgateway (log, metric, trace, admin UI) & 05/10 -- 07/10 & Huy & -- \\ \hline
-Thí nghiệm chồng lấn chính sách phân quyền & 06/10 -- 07/10 & Quân & -- \\ \hline
-Realm Keycloak, xác thực JWT và quy tắc phân quyền theo công cụ & 07/10 -- 11/10 & Quân & -- \\ \hline
-Dựng và dọn môi trường bằng một lệnh & 06/10 -- 12/10 & \multicolumn{2}{c|}{Quân (bản Linux), Huy (bản Windows)} \\ \hline
-Dashboard allow/deny trên Grafana & 09/10 -- 12/10 & Huy & -- \\ \hline
-Kiểm chứng lọc danh mục công cụ theo vai trò & 12/10 & Quân & -- \\ \hline
-Kiểm chứng từ chối lệnh gọi và các trường hợp biên & 13/10 & Quân & -- \\ \hline
-Tổng hợp kết quả giai đoạn 1 vào báo cáo nháp & 12/10 -- 15/10 & Quân & -- \\ \hline
-Danh tính AI Agent, cô lập mạng bằng NetworkPolicy và tài liệu bổ sung & 22/10 -- 27/10 & Huy & -- \\ \hline
-Hoàn thiện README và tài liệu dự án & 30/10 -- 04/11 & Quân & -- \\ \hline
-Viết báo cáo & -- & \multicolumn{2}{c|}{Chia theo chương, đọc chéo} \\ \hline
-\end{tabularx}}\end{table}
 
 % =====================================================================
 \subsection{Phương pháp thực hiện}

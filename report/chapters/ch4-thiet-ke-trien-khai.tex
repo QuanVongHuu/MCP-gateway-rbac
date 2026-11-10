@@ -33,8 +33,6 @@ Hệ thống gồm năm khối, mỗi khối trong một namespace Kubernetes ri
 \begin{figure}[htbp]\centering\includegraphics[width=1\textwidth]{system-architecture.png}
 \caption{Kiến trúc tổng thể hệ thống}\label{fig:arch}\end{figure}
 
-\subsubsection{Góc nhìn triển khai trên Docker}
-
 Hình~\ref{fig:docker} cho thấy mỗi thành phần thực sự chạy ở đâu. Hệ thống nằm trong ba vùng Docker nối với nhau qua network \texttt{kind}: toàn bộ cụm Kubernetes trong một container là node của kind, còn OpenMetadata và Spark History là hai nhóm container docker compose riêng. Vì vậy quy tắc mạng ở mục~\ref{sec:netpol} chỉ có hiệu lực trong vùng thứ nhất, và S4 mới đạt một phần. OpenMetadata gọi ngược vào Keycloak qua NodePort 30802 theo tên node \texttt{gatewayapi-control-plane}, nên tên cụm bị cố định. Trong các cổng ở Bảng~\ref{tab:ports}, chỉ cổng 8080 của gateway là cần cho nghiệp vụ; các cổng còn lại phục vụ quản trị và gỡ lỗi, và ở môi trường thật nên giữ ở mức nội bộ.
 
 \begin{figure}[htbp]\centering\includegraphics[width=0.72\textwidth]{docker-map.png}
@@ -111,15 +109,13 @@ Hình~\ref{fig:decision} bổ sung các nhánh bị từ chối. Token không h�
 \caption{Lưu đồ quyết định của gateway}\label{fig:decision}\end{figure}
 
 % =====================================================================
-\subsection{Các thành phần nền tảng của gateway}
+\subsection{Các thành phần nền tảng của gateway}\label{sec:netpol}
 
 Mọi yêu cầu tới \texttt{/mcp} được chuyển tới một backend của agentgateway chứa năm target; gateway gộp danh mục của cả năm và thêm tên target vào trước tên công cụ, ví dụ \texttt{radar\_list\_namespaces} (F1, F2). Ràng buộc đi kèm là tên target phải giống hệt nhau ở tên mock, Service, quy tắc phân quyền và bộ kiểm thử; lệch một ký tự là công cụ bị chặn mà không có lỗi nào chỉ ra nguyên nhân. Cấu hình được trích ở Phụ lục B.
 
 Quy tắc xác thực gắn vào Gateway thay vì từng route, nên route thêm sau cũng được bảo vệ. Khóa công khai của Keycloak được lưu đệm năm phút, nên khi Keycloak đổi khóa, gateway có thể từ chối token mới trong tối đa năm phút. Sau khi token hợp lệ, gateway \emph{ghi đè} ba header \texttt{x-forwarded-user}, \texttt{x-forwarded-groups} và \texttt{x-agent-id} bằng giá trị lấy từ token, nên header giả do client gửi bị thay thế. Token gốc được giữ tạm trong một header nội bộ cho việc đổi token của OpenMetadata, rồi bị một quy tắc thứ hai xóa trước khi rời gateway (S3); thiếu quy tắc thứ hai thì mọi backend đều nhận được token gốc.
 
 Toàn bộ phân quyền nằm trong một chính sách duy nhất, mỗi quy tắc là một biểu thức CEL kiểm tra vai trò, target và tên công cụ; các quy tắc được nối bằng phép HOẶC nên người có nhiều vai trò nhận hợp quyền (S2). Nhóm chọn một chính sách duy nhất sau khi thử nghiệm cho thấy cách gateway kết hợp nhiều chính sách khó đoán. Chính sách hiện chứa bốn vai trò cho người dùng và mười vai trò cho AI Agent (mục~\ref{sec:agent}).
-
-\subsubsection{Cô lập mạng}\label{sec:netpol}
 
 Một NetworkPolicy chỉ cho lưu lượng vào namespace backend nếu đến từ namespace của gateway. Đây là mắt xích giữ cho danh tính có giá trị: backend tin header \texttt{x-forwarded-user} vì chỉ gateway gửi được nó, nên nếu một pod khác gọi thẳng được backend thì pod đó có thể tự đặt header này. Hai backend thật chạy bằng Docker nằm ngoài cụm nên không được quy tắc này bảo vệ.
 

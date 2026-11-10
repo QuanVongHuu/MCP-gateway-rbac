@@ -4,6 +4,7 @@ Các phụ lục trích ý chính của cấu hình và mã nguồn, để ngư�
 
 \subsection*{Phụ lục A. Mã nguồn và dữ liệu}
 \phantomsection\addcontentsline{toc}{subsection}{Phụ lục A. Mã nguồn và dữ liệu}
+\setcounter{table}{0}\renewcommand{\thetable}{A.\arabic{table}}
 \textit{A.1. Kho mã}
 
 Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đề tài được công khai tại \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}, kèm hướng dẫn dựng lại hệ thống trong \texttt{QUICKSTART.md}. Bảng~\ref{tab:repo} chỉ ra từng phần được nhắc trong báo cáo nằm ở đâu. Để chạy lại, máy cần kind, kubectl, Helm, Docker có Compose với khoảng 8 GB bộ nhớ, Node.js, và Python có gói \texttt{mcp} phiên bản 1.30.0. Người dùng Windows dựng toàn bộ hệ thống qua WSL bằng \texttt{ops/up.ps1} và xóa cụm bằng \texttt{ops/down.ps1}. Trên Linux, \texttt{scripts/up.sh} đảm nhận phần việc tương ứng.
@@ -240,3 +241,27 @@ sum by (roles) (count_over_time(
   |~ `mcp.method.name=tools/call` |~ `http.status=400` |~ `Unknown tool`
   | regexp `roles=(?P<roles>\[[^]]*\])` [$__interval]))
 \end{lstlisting}
+
+\subsection*{Phụ lục G. Phân công trong nhóm}
+\phantomsection\addcontentsline{toc}{subsection}{Phụ lục G. Phân công trong nhóm}
+\setcounter{table}{0}\renewcommand{\thetable}{G.\arabic{table}}
+Bảng~\ref{tab:phancong} trình bày phân công theo từng công việc trong kế hoạch của nhóm, kèm thời gian thực hiện; cột ``Tham gia'' ghi nhận người hỗ trợ ở công việc mình không phụ trách chính.
+
+\begin{table}[H]\centering\caption{Phân công thực hiện}\label{tab:phancong}
+{\singlespacing\renewcommand{\arraystretch}{1.2}\small
+\begin{tabularx}{\textwidth}{|X|>{\centering\arraybackslash}p{2.5cm}|>{\centering\arraybackslash}p{2.4cm}|>{\centering\arraybackslash}p{1.6cm}|}\hline
+\textbf{Công việc} & \textbf{Thời gian} & \textbf{Phụ trách chính} & \textbf{Tham gia} \\ \hline
+Dựng MCP Gateway trên Kubernetes & 30/09 -- 02/10 & \multicolumn{2}{c|}{Cả nhóm} \\ \hline
+Mock MCP server cho năm backend (21 công cụ) & 05/10 -- 07/10 & Quân & Huy \\ \hline
+Khảo sát khả năng quan sát của agentgateway (log, metric, trace, admin UI) & 05/10 -- 07/10 & Huy & -- \\ \hline
+Thí nghiệm chồng lấn chính sách phân quyền & 06/10 -- 07/10 & Quân & -- \\ \hline
+Realm Keycloak, xác thực JWT và quy tắc phân quyền theo công cụ & 07/10 -- 11/10 & Quân & -- \\ \hline
+Dựng và dọn môi trường bằng một lệnh & 06/10 -- 12/10 & \multicolumn{2}{c|}{Quân (bản Linux), Huy (bản Windows)} \\ \hline
+Dashboard allow/deny trên Grafana & 09/10 -- 12/10 & Huy & -- \\ \hline
+Kiểm chứng lọc danh mục công cụ theo vai trò & 12/10 & Quân & -- \\ \hline
+Kiểm chứng từ chối lệnh gọi và các trường hợp biên & 13/10 & Quân & -- \\ \hline
+Tổng hợp kết quả giai đoạn 1 vào báo cáo nháp & 12/10 -- 15/10 & Quân & -- \\ \hline
+Danh tính AI Agent, cô lập mạng bằng NetworkPolicy và tài liệu bổ sung & 22/10 -- 27/10 & Huy & -- \\ \hline
+Hoàn thiện README và tài liệu dự án & 30/10 -- 04/11 & Quân & -- \\ \hline
+Viết báo cáo & -- & \multicolumn{2}{c|}{Chia theo chương, đọc chéo} \\ \hline
+\end{tabularx}}\end{table}

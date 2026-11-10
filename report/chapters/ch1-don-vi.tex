@@ -16,57 +16,12 @@ Với tư cách công ty tài chính tổng hợp, VietCredit được huy độ
 
 Khi gần như toàn bộ hoạt động cho vay vận hành trên hệ thống, an toàn thông tin trở thành điều kiện để kinh doanh chứ không còn là việc riêng của bộ phận kỹ thuật. Báo cáo thường niên ghi rằng các hệ thống thông tin của công ty được phân loại từ cấp độ 1 đến cấp độ 3 theo quy định của NHNN, mỗi cấp độ đi kèm biện pháp bảo mật tương ứng; cùng lúc, công ty đặt chuyển đổi số, trong đó có trí tuệ nhân tạo và tự động hóa, làm trọng tâm chiến lược năm 2026 \parencite{vietcredit_bctn2025}. Hai định hướng ấy gặp nhau ở câu hỏi mà đề tài theo đuổi. Một AI Agent được phép thao tác trên những hệ thống đã phân cấp bảo mật thì phải chịu cùng khuôn khổ kiểm soát truy cập như một nhân viên.
 
-\subsubsection{Cơ cấu tổ chức}
-
-Hình~\ref{fig:org} vẽ lại sơ đồ tổ chức trong báo cáo thường niên 2025 ở mức nhóm chức năng \parencite{vietcredit_bctn2025}. Đứng đầu là Đại hội đồng cổ đông, bên dưới có Hội đồng quản trị (HĐQT) và Ban Kiểm soát; HĐQT quản lý Tổng Giám đốc cùng Ban Điều hành, và từ đây tách ra Chi nhánh Thành phố Hồ Chí Minh cùng sáu nhóm chức năng. Nhóm Công nghệ thông tin (CNTT) có nhiều đơn vị con nhất, gồm các phòng An ninh thông tin, Vận hành hạ tầng, Quản trị dữ liệu, Vận hành ứng dụng và Trung tâm Phát triển và triển khai dự án. Cách chia này đặt vận hành hạ tầng và an ninh thông tin ra ngoài khối phát triển phần mềm, lại dành riêng cho dữ liệu một phòng quản trị. Đề tài chạm vào cả ba mảng. Gateway thuộc về hạ tầng, phân quyền thuộc về an ninh thông tin, còn năm hệ thống phía sau gateway đều phục vụ dữ liệu.
-
-\begin{figure}[H]\centering
-\begin{tikzpicture}[
-  qt/.style={khoi,font=\footnotesize\bfseries,fill=gray!12,text width=3.2cm,minimum height=6mm,inner sep=2pt},
-  nh/.style={khoi,font=\footnotesize\bfseries,fill=gray!25,text width=1.8cm,minimum height=11mm,inner sep=2pt}]
-\node[qt] (dh) at (6.75,0) {Đại hội đồng cổ đông};
-\node[qt] (hd) at (6.75,-1.1) {Hội đồng quản trị};
-\node[qt] (tgd) at (6.75,-2.2) {Tổng Giám đốc, Ban Điều hành};
-\node[qt] (bks) at (11.25,-0.55) {Ban Kiểm soát};
-\node[qt] (ktnb) at (11.25,-1.55) {P. Kiểm toán nội bộ};
-\node[qt] (uyban) at (2.25,-1.65) {Các hội đồng, ủy ban\\và Văn phòng HĐQT};
-\draw[mui] (dh) -- (hd);
-\draw[mui] (dh.south |- bks.west) -- (bks.west);
-\draw[mui] (bks) -- (ktnb);
-\draw[mui] (hd) -- (tgd);
-\draw[mui] (hd.south |- uyban.east) -- (uyban.east);
-\draw[thick] (tgd.south) -- (6.75,-2.9);
-\draw[thick] (0,-2.9) -- (13.5,-2.9);
-\foreach \i in {0,...,6} \draw[mui] ({\i*2.25},-2.9) -- ({\i*2.25},-3.2);
-\node[nh,anchor=north] at (0,-3.2) {Chi nhánh\\TP.HCM};
-\node[nh,anchor=north] at (2.25,-3.2) {Nhóm\\Kinh doanh};
-\node[nh,anchor=north] at (4.5,-3.2) {Nhóm\\Vận hành};
-\node[nh,anchor=north] at (6.75,-3.2) {Nhóm\\Hỗ trợ};
-\node[nh,anchor=north] at (9,-3.2) {Nhóm\\CNTT};
-\node[nh,anchor=north] at (11.25,-3.2) {Nhóm\\QLRR};
-\node[nh,anchor=north] at (13.5,-3.2) {Nhóm Tài chính Kế toán và Nguồn vốn};
-\end{tikzpicture}
-\caption[Sơ đồ cơ cấu tổ chức của VietCredit]{Sơ đồ cơ cấu tổ chức của VietCredit ở mức nhóm chức năng, vẽ lại từ báo cáo thường niên 2025 \parencite{vietcredit_bctn2025}. Trong hình, P. là phòng, CNTT là công nghệ thông tin, QLRR là quản lý rủi ro}\label{fig:org}
-\end{figure}
-
-\subsection{Bộ phận kiến tập và quy trình làm việc}
-
-\subsubsection{Bộ phận kiến tập}
-
-Báo cáo thường niên không mô tả chức năng của từng phòng công nghệ. Nguồn công khai duy nhất nhóm tìm được về công cụ là tin tuyển dụng vị trí Data Scientist của Phòng Quản lý Rủi ro Số 2 năm 2026, trong đó liệt kê Spark và Airflow cho xử lý dữ liệu, MLflow cho học máy, Docker, Kubernetes cùng CI/CD dựa trên Git cho nền tảng, Prometheus và Grafana cho giám sát \parencite{vietcredit_tuyendung_ds}. Đó là yêu cầu của một vị trí, không phải quy chuẩn chung của công ty. Dù vậy, Kubernetes, Spark, Airflow và Grafana trùng với những thành phần đề tài dựng trong môi trường thử nghiệm, nên môi trường ấy không xa hệ công cụ mà đơn vị thực sự sử dụng.
-
-\todo{Tên chính thức của bộ phận kiến tập và vị trí trên Hình~\ref{fig:org}; người phụ trách, số thành viên, chức năng chính theo mô tả của người hướng dẫn Đinh Văn An (ghi chức danh). Số lượng khách hàng của công ty nếu được phép công bố.}
-
 \subsubsection{Quy trình làm việc}
 
 Trong phạm vi đề tài, quy trình làm việc của nhóm có thể truy lại qua lịch sử kho mã. Mỗi thành phần được phát triển trên một nhánh riêng như \texttt{feat/keycloak}, \texttt{feat/rbac} hay \texttt{feat/grafana-allow-deny}, sau đó gộp vào nhánh \texttt{dev} để chạy thử chung, rồi mới đưa lên \texttt{main} bằng pull request. Từ 08/10 đến 04/11/2026, bảy pull request đã đi qua con đường này. Nhóm chỉ coi một thay đổi là hoàn tất khi kiểm thử tĩnh và kiểm thử đầu cuối liên quan cùng đạt, và đầu ra kiểm thử, sau khi loại bỏ secret cùng token, được lưu vào thư mục \path{evidence/}. Báo cáo cũng có nhánh riêng, được chia theo chương và hai thành viên đọc chéo cho nhau (Bảng~\ref{tab:phancong}). Công việc của từng tuần được ghi ở phần Lịch làm việc đầu báo cáo.
-
-\todo{Quy trình làm việc thực tế tại đơn vị, gồm cách giao việc, lịch họp với người hướng dẫn, quy trình review, môi trường được cấp và quy định bảo mật áp dụng cho sinh viên kiến tập.}
 
 \subsection{Vị trí kiến tập và định hướng nghề nghiệp}
 
 Đề tài đặt nhóm vào vùng giao nhau giữa kỹ thuật nền tảng (platform engineering), DevOps và observability, nhưng áp dụng cho một kiểu người dùng mới là AI Agent. Phần lớn thời gian không dành cho việc huấn luyện mô hình. Nhóm dồn sức vào dựng môi trường để agent chạy an toàn, cụ thể là viết manifest Kubernetes và script chạy lại được nhiều lần, cấu hình danh tính máy với máy trên Keycloak, soạn quy tắc phân quyền theo công cụ trên gateway và dựng dashboard kiểm toán trên Grafana. Bảng~\ref{tab:phancong} trình bày cách hai thành viên chia phần kỹ thuật.
 
 Lý do chọn hướng này khá đơn giản. Kỹ năng nền tảng ít lệ thuộc vào một mô hình cụ thể, bởi mô hình ngôn ngữ có thể bị thay thế sau vài tháng trong khi yêu cầu cấp danh tính, phân quyền tối thiểu và ghi nhật ký kiểm toán vẫn giữ nguyên. Đơn vị cũng cần đúng những kỹ năng đó, vì tin tuyển dụng nhắc ở trên đòi hỏi Docker, Kubernetes, CI/CD và giám sát bằng Grafana \parencite{vietcredit_tuyendung_ds}. Qua đề tài, nhóm đã làm việc trực tiếp với tất cả các công cụ này, riêng CI/CD thì chưa. CI/CD, cùng với xoay vòng secret cho agent và cảnh báo chủ động dựa trên log, là những nội dung nhóm định học tiếp.
-
-\todo{Thời gian kiến tập chính thức theo giấy xác nhận (ghi rõ năm); vị trí hoặc chức danh kiến tập của Quân và Huy; nhiệm vụ ngoài đề tài nếu có; định hướng nghề nghiệp riêng của từng thành viên.}
