@@ -1,13 +1,13 @@
 \heading{PHỤ LỤC}
 
-Các phụ lục trích ý chính của cấu hình và mã nguồn, để người đọc đối chiếu với thiết kế ở Chương 4 mà không phải mở kho mã. Phần lược bỏ được đánh dấu bằng dấu ba chấm. Bản đầy đủ của mọi tệp nằm trong kho mã công khai nêu ở Phụ lục A.
+Phụ lục B đến F trích phần cốt lõi của cấu hình và mã nguồn để người đọc đối chiếu với thiết kế ở Chương 4 mà không cần mở kho mã. Đoạn bị lược bỏ được thay bằng dấu ba chấm; bản đầy đủ của từng tệp nằm trong kho mã công khai nêu ở Phụ lục A.
 
 \subsection*{Phụ lục A. Mã nguồn và dữ liệu}
 \phantomsection\addcontentsline{toc}{subsection}{Phụ lục A. Mã nguồn và dữ liệu}
 \setcounter{table}{0}\renewcommand{\thetable}{A.\arabic{table}}
 \textit{A.1. Kho mã}
 
-Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đề tài được công khai tại \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}, kèm hướng dẫn dựng lại hệ thống trong \texttt{QUICKSTART.md}. Bảng~\ref{tab:repo} chỉ ra từng phần được nhắc trong báo cáo nằm ở đâu. Để chạy lại, máy cần kind, kubectl, Helm, Docker có Compose với khoảng 8 GB bộ nhớ, Node.js, và Python có gói \texttt{mcp} phiên bản 1.30.0. Người dùng Windows dựng toàn bộ hệ thống qua WSL bằng \texttt{ops/up.ps1} và xóa cụm bằng \texttt{ops/down.ps1}. Trên Linux, \texttt{scripts/up.sh} đảm nhận phần việc tương ứng.
+Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đề tài được công khai tại \url{https://github.com/QuanVongHuu/MCP-gateway-rbac}, kèm hướng dẫn dựng lại hệ thống trong \texttt{QUICKSTART.md}. Bảng~\ref{tab:repo} cho biết vị trí của từng thành phần được nhắc đến trong báo cáo. Để chạy lại, máy cần kind, kubectl, Helm, Docker có Compose với khoảng 8 GB bộ nhớ, Node.js và Python có gói \texttt{mcp} phiên bản 1.30.0. Trên Windows, \texttt{ops/up.ps1} dựng toàn bộ hệ thống qua WSL và \texttt{ops/down.ps1} xóa cụm; trên Linux, \texttt{scripts/up.sh} đảm nhận phần việc dựng tương ứng.
 
 \begin{table}[H]\centering\caption{Vị trí các thành phần trong kho mã}\label{tab:repo}
 {\singlespacing\renewcommand{\arraystretch}{1.15}\small
@@ -27,15 +27,15 @@ Toàn bộ cấu hình, mã mock, bộ kiểm thử và bằng chứng của đ�
 
 \textit{A.2. Ghi chú về dữ liệu}
 
-Mọi dữ liệu trong đề tài đều là dữ liệu thử. Năm mock trả dữ liệu dựng sẵn cho đủ 21 công cụ, và những công cụ mang tính ghi như \texttt{airflow\_trigger\_dag} hay \texttt{radar\_manage\_workload} chỉ trả kết quả mô phỏng, không gây tác dụng phụ nào. Cấu hình hiện tại trỏ ba target radar, OpenMetadata và Spark History sang phần mềm thật chạy cục bộ. Các hệ thống này cũng chỉ chứa dữ liệu thử, bởi radar đọc chính cụm kind của hệ thống, OpenMetadata có người dùng thử cùng một bảng mẫu do script cài đặt tạo ra, còn Spark History đọc ba event log mẫu của dự án gốc. Đề tài không dùng dữ liệu nghiệp vụ của đơn vị kiến tập.
+Toàn bộ dữ liệu trong đề tài là dữ liệu thử. Năm mock trả dữ liệu dựng sẵn cho cả 21 công cụ; các công cụ có tính ghi như \texttt{airflow\_trigger\_dag} hay \texttt{radar\_manage\_workload} chỉ trả về kết quả mô phỏng và không gây tác dụng phụ. Ở cấu hình hiện tại, ba target radar, OpenMetadata và Spark History được trỏ sang phần mềm thật chạy cục bộ, nhưng các hệ thống này cũng chỉ chứa dữ liệu thử: radar đọc chính cụm kind của đề tài, OpenMetadata chứa người dùng thử và một bảng mẫu do script cài đặt tạo ra, còn Spark History đọc ba event log mẫu của dự án gốc. Đề tài không sử dụng dữ liệu nghiệp vụ của đơn vị kiến tập.
 
-Bằng chứng kiểm thử chỉ lưu đầu ra đã lược bỏ bí mật, nên không chứa client secret, access token hay claim nhạy cảm. Secret của từng agent được sinh thẳng vào Kubernetes Secret, không in ra màn hình, và cấu hình realm chỉ giữ biến giữ chỗ như \texttt{\$\{CLUSTER\_OBSERVER\_AGENT\_SECRET\}}. Tài khoản \texttt{admin}/\texttt{admin} của Keycloak và Grafana, cùng mật khẩu \texttt{password} của người dùng thử, là giá trị mặc định chỉ dành cho môi trường thử cục bộ. Trước khi đưa cấu hình ra khỏi máy cá nhân, các giá trị này phải được thay.
+Các tệp bằng chứng kiểm thử chỉ lưu đầu ra đã lược bỏ bí mật, do đó không chứa client secret, access token hay claim nhạy cảm. Secret của từng agent được sinh trực tiếp vào Kubernetes Secret mà không in ra màn hình; cấu hình realm chỉ giữ biến giữ chỗ như \texttt{\$\{CLUSTER\_OBSERVER\_AGENT\_SECRET\}}. Tài khoản \texttt{admin}/\texttt{admin} của Keycloak và Grafana, cùng mật khẩu \texttt{password} của người dùng thử, là giá trị mặc định dành riêng cho môi trường thử cục bộ và phải được thay trước khi đưa cấu hình ra khỏi máy cá nhân.
 
 \subsection*{Phụ lục B. Cấu hình gateway}
 \phantomsection\addcontentsline{toc}{subsection}{Phụ lục B. Cấu hình gateway}
 \textit{B.1. Backend hợp nhất năm target}
 
-Một backend chứa cả năm target. Giá trị \texttt{Always} của \texttt{prefixMode} tạo tên công cụ dạng \texttt{\{target\}\_\{tool\}}. Bốn target còn lại khai báo giống hệt \texttt{dbt}, chỉ khác tên và địa chỉ.
+Cả năm target được khai báo trong một backend duy nhất. Giá trị \texttt{Always} của \texttt{prefixMode} gắn tên target vào trước tên công cụ, tạo ra dạng \texttt{\{target\}\_\{tool\}}. Bốn target còn lại có khai báo giống \texttt{dbt}, chỉ khác tên và địa chỉ.
 \begin{lstlisting}
 kind: AgentgatewayBackend
 spec:
@@ -49,7 +49,7 @@ spec:
 \end{lstlisting}
 \textit{B.2. Xác thực JWT và chuyển tiếp định danh}
 
-Chính sách gắn vào Gateway kiểm tra token, ghi đè ba header danh tính bằng claim đã kiểm tra, rồi chuyển token gốc sang header nội bộ \texttt{x-caller-token}. Một chính sách thứ hai, gắn vào backend, xóa header này trước khi yêu cầu rời gateway (S3).
+Chính sách gắn vào Gateway kiểm tra token, ghi đè ba header danh tính bằng claim đã được xác minh, rồi chuyển token gốc từ header \texttt{Authorization} sang header nội bộ \texttt{x-caller-token}. Chính sách thứ hai, gắn vào backend, xóa header nội bộ này trước khi yêu cầu rời gateway (S3).
 \begin{lstlisting}
 traffic:
   jwtAuthentication:
@@ -74,7 +74,7 @@ backend: {transformation: {request: {remove: [x-caller-token]}}}
 \end{lstlisting}
 \textit{B.3. Phân quyền theo công cụ}
 
-Mọi quy tắc nằm trong một chính sách \texttt{Allow} duy nhất; các biểu thức được nối bằng phép HOẶC, và công cụ không khớp biểu thức nào vừa bị ẩn vừa bị từ chối.
+Toàn bộ quy tắc nằm trong một chính sách \texttt{Allow} duy nhất. Các biểu thức được kết hợp bằng phép HOẶC, nên agent có nhiều vai trò nhận hợp các quyền; công cụ không khớp biểu thức nào bị ẩn khỏi danh mục và bị từ chối khi gọi.
 \begin{lstlisting}
 backend:
   mcp:
@@ -92,7 +92,7 @@ backend:
 \end{lstlisting}
 \textit{B.4. Cô lập mạng}
 
-Chính sách chọn mọi pod trong namespace \texttt{mcp} và chỉ nhận kết nối từ namespace của gateway (S4).
+Chính sách áp dụng cho mọi pod trong namespace \texttt{mcp} và chỉ cho phép kết nối đến từ namespace của gateway (S4).
 \begin{lstlisting}
 kind: NetworkPolicy
 metadata: {name: backends-from-gateway-only, namespace: mcp}
@@ -245,7 +245,7 @@ sum by (roles) (count_over_time(
 \subsection*{Phụ lục G. Phân công trong nhóm}
 \phantomsection\addcontentsline{toc}{subsection}{Phụ lục G. Phân công trong nhóm}
 \setcounter{table}{0}\renewcommand{\thetable}{G.\arabic{table}}
-Bảng~\ref{tab:phancong} trình bày phân công theo từng công việc trong kế hoạch của nhóm, kèm thời gian thực hiện; cột ``Tham gia'' ghi nhận người hỗ trợ ở công việc mình không phụ trách chính.
+Bảng~\ref{tab:phancong} trình bày phân công theo từng công việc trong kế hoạch của nhóm. Thời gian ghi trong bảng là thời gian theo kế hoạch, nên có thể lệch vài ngày so với mốc commit được ghi ở Lịch làm việc. Cột ``Tham gia'' ghi tên thành viên hỗ trợ ở những công việc không do mình phụ trách chính.
 
 \begin{table}[H]\centering\caption{Phân công thực hiện}\label{tab:phancong}
 {\singlespacing\renewcommand{\arraystretch}{1.2}\small
