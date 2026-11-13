@@ -115,14 +115,14 @@ sequenceDiagram
 
 </details>
 
-<details>
-<summary><b>Runtime map: containers, ports and volumes</b></summary>
+### Docker map
+
+Everything runs on one Docker host: the kind node holds the gateway, Keycloak, mocks, radar and the observability stack; OpenMetadata and Spark History run as separate Compose projects on the same `kind` network.
 
 <p align="center">
-  <img src="report/images/docker-map.png" alt="Docker map of the kind node, OpenMetadata and Spark History compose projects with ports and volumes" width="850">
+  <img src="report/images/docker-map.png" alt="Docker map of the kind node, OpenMetadata and Spark History compose projects with ports and volumes" width="900">
+  <br><sub>Containers, exposed ports and volumes. Solid arrows: published ports; dashed arrows: traffic and storage.</sub>
 </p>
-
-</details>
 
 ---
 
