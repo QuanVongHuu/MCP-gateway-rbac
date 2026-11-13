@@ -1,0 +1,40 @@
+\chuong{GIỚI THIỆU ĐỀ TÀI}
+
+% =====================================================================
+\subsection{Bối cảnh}
+
+AI Agent đang chuyển từ trả lời câu hỏi sang thực hiện thao tác như đọc log, tra cứu lineage hay kích hoạt lại một DAG. Đề tài xuất phát từ nhu cầu của nhóm dữ liệu muốn đưa AI Agent vào vận hành năm hệ thống: cụm Kubernetes (truy cập qua Radar), Spark History Server, OpenMetadata, dbt và Airflow. Model Context Protocol (MCP) chuẩn hóa cách agent kết nối với các hệ thống này: mỗi hệ thống được bọc bởi một MCP server công bố danh sách công cụ, còn agent đóng vai trò client và gọi công cụ khi cần \parencite{mcp_spec}. Hệ quả là năm MCP server độc lập, mỗi server có điểm truy cập và cơ chế xác thực riêng.
+
+Chủ thể thao tác vì thế thay đổi: thay cho kỹ sư có tài khoản cá nhân và chịu trách nhiệm về từng lệnh là một chương trình chạy liên tục, ra quyết định dựa trên đầu ra của mô hình ngôn ngữ, và đầu ra này có thể bị dẫn dắt bởi nội dung độc hại nằm ngay trong dữ liệu công cụ trả về \parencite{breakingmcp}. Câu hỏi cần trả lời vì vậy là ``agent nào được dùng công cụ nào, và làm sao biết nó đã làm gì''.
+
+% =====================================================================
+\subsection{Vấn đề cần giải quyết}
+
+Khi agent kết nối thẳng tới năm MCP server, nảy sinh năm vấn đề gắn chặt với nhau, giải quyết riêng một vấn đề vẫn để lại lỗ hổng ở vấn đề khác.
+
+Vấn đề đầu tiên là xác thực bị phân tán. Mỗi hệ thống có cơ chế riêng (kubeconfig, token API, tài khoản người dùng), nên cấp hoặc thu hồi quyền cho một agent phải làm ở năm nơi. Cách dễ nhất là cho nhiều agent dùng chung một thông tin đăng nhập quyền rộng, và khi đó không còn phân biệt được agent nào đã làm gì.
+
+Quyền cũng quá thô. Quyền được cấp ở mức tài khoản chứ không ở mức công cụ, nên một agent chỉ cần theo dõi DAG nhưng có thông tin đăng nhập Airflow vẫn kích hoạt hoặc tạm dừng được DAG, trái với nguyên tắc đặc quyền tối thiểu \parencite{saltzer1975protection}. Với AI Agent, rủi ro có trước cả lúc gọi, vì mô hình chọn công cụ từ chính danh sách được công bố.
+
+Vấn đề thứ ba là thiếu khả năng kiểm toán. Nhật ký nằm rải rác ở năm hệ thống, mỗi nơi một định dạng và không có danh tính agent chung để nối lại, nên không có một nơi trả lời được ``agent nào đã gọi công cụ nào và có bị từ chối không'', trong khi lệnh bị từ chối là dấu hiệu sớm nhất của một agent hoạt động sai mục đích.
+
+Ngay cả khi có điểm kiểm soát phía trước, vẫn tồn tại đường vòng: mặc định trong Kubernetes, mọi Pod gọi được tới mọi Pod khác, nên một Pod bị chiếm quyền vẫn gọi thẳng được backend.
+
+Cuối cùng, chính sách khó kiểm chứng. Thử quy tắc phân quyền trên hệ thống thật vừa rủi ro, vì công cụ ghi có tác dụng phụ, vừa tốn công; thiếu môi trường dựng lại được và tiêu chí đúng sai rõ ràng thì sai lệch giữa quyền mong muốn và quyền thực tế khó bị phát hiện sớm.
+
+% =====================================================================
+\subsection{Mục tiêu}
+
+Mục tiêu chung là xây dựng một hệ thống chứng minh khái niệm (proof of concept), chủ yếu bằng cấu hình thành phần mã nguồn mở, trong đó mọi lệnh gọi công cụ của AI Agent đi qua một điểm truy cập MCP duy nhất là gateway. Gateway phải xác thực từng agent bằng JWT do Keycloak cấp, phân quyền đến từng công cụ theo nguyên tắc mặc định từ chối, là con đường duy nhất tới backend nhờ NetworkPolicy, và ghi lại mọi quyết định cho phép hoặc từ chối kèm danh tính agent. Mục tiêu đạt khi có bằng chứng rằng cả 21 công cụ gọi được qua gateway, kết quả cho phép và từ chối của mọi agent khớp ma trận quyền kỳ vọng, lệnh gọi thẳng tới backend bị chặn, và môi trường dựng lại được bằng một lệnh.
+
+% =====================================================================
+\subsection{Đối tượng và phạm vi}
+
+Đối tượng nghiên cứu là cơ chế kiểm soát truy cập của AI Agent tới công cụ MCP thông qua gateway, xét trên bốn khía cạnh: danh tính, phân quyền, cô lập mạng và kiểm toán. Hệ thống chạy trên cụm Kubernetes cục bộ dựng bằng kind, với agentgateway 1.5.0 và Keycloak 26.2.5. Phân quyền được kiểm thử trên bản giả lập (mock) của cả năm hệ thống, tổng cộng 21 công cụ, trong đó công cụ ghi giữ nguyên hình thức nhưng không gây tác dụng phụ; Radar, OpenMetadata và Spark History chạy thêm bản thật để kiểm tra khả năng hoạt động qua gateway. Đề tài chỉ xét agent tự trị, tự xác thực bằng luồng client credentials của OAuth 2.0 \parencite{rfc6749}, với mười danh tính gồm chín agent chức năng và một agent không có vai trò dùng để kiểm thử từ chối.
+
+Đề tài không xét tính sẵn sàng cao, kho quản lý bí mật chuyên dụng hay hiệu năng gateway. Phân quyền ở mức tài nguyên trên backend thật, trao đổi token cho OpenMetadata và trường hợp agent hành động thay mặt người dùng mới dừng ở mức thiết kế. Agent gọi agent, phê duyệt từng lệnh gọi và lọc nội dung độc hại nằm ngoài đề tài.
+
+% =====================================================================
+\subsection{Phương pháp thực hiện}
+
+Đề tài theo ba nguyên tắc. Thứ nhất là ưu tiên cấu hình: thay vì viết gateway riêng, tôi ghép các thành phần mã nguồn mở vốn hiểu MCP và các chuẩn bảo mật, rồi khai báo hành vi mong muốn bằng tài nguyên Kubernetes. Cách này giảm lượng mã cần bảo đảm an toàn và dễ dựng lại ở máy khác, đổi lại hệ thống chỉ làm được những gì các thành phần hỗ trợ sẵn. Thứ hai là triển khai lặp theo giai đoạn, từ danh mục công cụ, danh tính agent, xác thực JWT, phân quyền theo công cụ đến cô lập mạng và kiểm toán; mỗi giai đoạn chỉ kết thúc khi điều kiện hoàn thành đã được kiểm chứng. Thứ ba là kiểm chứng dựa trên hợp đồng: chính sách phân quyền có một nguồn sự thật duy nhất, ma trận kỳ vọng được cập nhật cùng lúc với chính sách, và việc kiểm chứng gồm cả kiểm thử tĩnh không cần cụm lẫn kiểm thử đầu cuối qua gateway. Kết quả mỗi lần chạy, đã loại bỏ bí mật và token, được lưu thành bằng chứng cho Chương 5.

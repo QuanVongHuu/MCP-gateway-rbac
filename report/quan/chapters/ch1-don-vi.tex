@@ -1,0 +1,23 @@
+\chuong{TỔNG QUAN VỀ ĐƠN VỊ KIẾN TẬP}
+
+\subsection{Giới thiệu Công ty Tài chính Tổng hợp cổ phần Tín Việt}
+
+\subsubsection{Lịch sử hình thành}
+
+Đơn vị kiến tập là Công ty Tài chính Tổng hợp cổ phần Tín Việt (VietCredit General Finance Joint Stock Company, gọi tắt là VietCredit). Tiền thân của công ty là Công ty Tài chính cổ phần Xi măng, được Ngân hàng Nhà nước Việt Nam (NHNN) cấp phép năm 2008 \parencite{vietcredit_bctn2025}. Ngày 18/6/2018, NHNN cấp đổi giấy phép và công ty mang tên Công ty Tài chính cổ phần Tín Việt, với vốn điều lệ khoảng 605 tỷ đồng và Tổng công ty Công nghiệp Xi măng Việt Nam (Vicem) là cổ đông lớn duy nhất \parencite{nhadautu_doiten2018}. Cũng từ năm 2018, công ty chuyển hướng sang tài chính tiêu dùng \parencite{vietcredit_bctn2025}; chữ ``Tổng hợp'' chỉ có trong tên từ ngày 26/05/2025 \parencite{baodautu_doiten2025}. Tính đến ngày 31/12/2025, VietCredit có vốn điều lệ khoảng 912 tỷ đồng, 454 cán bộ nhân viên, trụ sở chính tại Hà Nội và một chi nhánh tại Thành phố Hồ Chí Minh; cổ phiếu giao dịch trên UPCoM với mã TIN \parencite{vietcredit_bctn2025}.
+
+\subsubsection{Lĩnh vực hoạt động}
+
+Là công ty tài chính tổng hợp, VietCredit được huy động vốn, cấp tín dụng dưới các hình thức cho vay tiêu dùng, phát hành thẻ tín dụng và cho thuê tài chính, cùng một số dịch vụ tài chính khác trong phạm vi giấy phép của NHNN \parencite{vietcredit_bctn2025}. Trọng tâm thực tế là cho vay qua kênh số: sản phẩm Tin Vay được tích hợp vào ứng dụng của các đối tác như MoMo, Viettel Money, Zalo và Grab để khách hàng vay hoàn toàn trực tuyến, và đến cuối năm 2025 gần 80\% dư nợ đến từ cho vay qua công nghệ số \parencite{vietcredit_kqkd2025}. Ngày 30/9/2026, dư nợ cho vay khách hàng đạt gần 20.928 tỷ đồng, cao hơn cùng kỳ trên 124\% \parencite{vnba_9t2026}.
+
+Khi phần lớn dư nợ hình thành trên kênh số, an toàn thông tin trở thành điều kiện của hoạt động kinh doanh. Các hệ thống thông tin của công ty được phân loại từ cấp độ 1 đến cấp độ 3 theo quy định của NHNN, mỗi cấp độ đi kèm biện pháp bảo mật tương ứng; đồng thời công ty xác định chuyển đổi số, trong đó có trí tuệ nhân tạo và tự động hóa, là trọng tâm chiến lược năm 2026 \parencite{vietcredit_bctn2025}. Đặt hai định hướng này cạnh nhau, người viết cho rằng AI Agent thao tác trên hệ thống đã phân cấp bảo mật phải chịu cùng khuôn khổ kiểm soát truy cập như nhân viên; đó là điểm xuất phát của đề tài.
+
+\subsubsection{Quy trình làm việc}
+
+Quy trình làm việc của nhóm có thể truy lại qua lịch sử kho mã. Mỗi thành phần được phát triển trên một nhánh riêng như \texttt{feat/keycloak}, \texttt{feat/rbac} hay \texttt{feat/grafana-allow-deny}, rồi gộp bằng pull request, phần lớn vào nhánh \texttt{dev} để chạy thử chung trước khi đưa lên \texttt{main}; từ 08/10 đến 04/11/2026 kho mã ghi nhận bảy pull request. Một thay đổi chỉ được coi là hoàn tất khi kiểm thử tĩnh và kiểm thử đầu cuối liên quan cùng đạt, và đầu ra kiểm thử, sau khi loại bỏ secret và token, được lưu vào thư mục \path{evidence/}. Báo cáo được viết theo chương trên nhánh riêng, hai thành viên đọc chéo phần của nhau (Bảng~\ref{tab:phancong}).
+
+\subsection{Vị trí kiến tập và định hướng nghề nghiệp}
+
+Đề tài đặt tôi vào vùng giao nhau giữa kỹ thuật nền tảng (platform engineering), DevOps và observability, với người dùng là AI Agent. Phần lớn thời gian dành cho việc dựng môi trường để agent chạy an toàn: viết manifest Kubernetes và script chạy lại được nhiều lần, cấu hình danh tính máy với máy trên Keycloak, soạn quy tắc phân quyền theo công cụ trên gateway và dựng dashboard kiểm toán trên Grafana.
+
+Tôi chọn hướng này vì kỹ năng nền tảng ít phụ thuộc vào một mô hình cụ thể: mô hình ngôn ngữ có thể bị thay thế sau vài tháng, còn yêu cầu cấp danh tính, phân quyền tối thiểu và ghi nhật ký kiểm toán thì không. Tin tuyển dụng vị trí Data Scientist của VietCredit cũng yêu cầu Docker, Kubernetes, CI/CD và giám sát bằng Grafana \parencite{vietcredit_tuyendung_ds}. Qua đề tài, tôi đã làm việc trực tiếp với các công cụ này, trừ CI/CD; CI/CD, xoay vòng secret cho agent và cảnh báo chủ động dựa trên log là những nội dung tôi dự định học tiếp.

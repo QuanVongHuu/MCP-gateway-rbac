@@ -1,0 +1,23 @@
+\chuong{KẾT LUẬN VÀ KIẾN NGHỊ}
+
+\subsection{Kết quả đạt được}
+
+Đề tài đã xây dựng, hoàn toàn bằng cấu hình các thành phần mã nguồn mở, một hệ thống chứng minh khái niệm trong đó mọi lệnh gọi công cụ của AI Agent đi qua một điểm truy cập MCP duy nhất. Theo Chương 5, sáu trong mười yêu cầu đạt, bốn yêu cầu đạt một phần, và không phép đo nào cho kết quả sai. Cả 21 công cụ gọi được qua gateway; mười agent nhận đúng vai trò trong token, khớp cả 210 ô của ma trận kỳ vọng, và 9 lệnh gọi ngoài quyền đều bị chặn tại gateway. Pod trong namespace \texttt{default} không kết nối được tới backend. Qua năm lần khởi động ấm, bước áp cấu hình mất trung bình 4,15 giây, kiểm thử phân quyền luôn đạt và access log luôn ghi đúng 9 lệnh cho phép, 9 lệnh bị chặn.
+
+Phần chưa trọn vẹn nằm ở chiều từ chối của xác thực và độ khớp giữa bằng chứng với cấu hình: các trường hợp thiếu token, header giả và xóa token gốc chưa lưu đầu ra; lượt gọi đủ 21 công cụ diễn ra trước khi bật JWT; cấu hình hợp nhất với ba backend thật chưa có đầu ra kiểm thử đầu cuối.
+
+\todo{Quân bổ sung kết quả cá nhân và đối chiếu với mục Đánh giá ở Chương 5.}
+
+\subsection{Bài học kinh nghiệm}
+
+Bài học đầu tiên là cấu hình sai thường không báo lỗi mà lặng lẽ làm hệ thống kém an toàn hơn. Khối biến đổi header đặt lồng nhầm trong khối xác thực JWT khiến Kubernetes từ chối tệp mới nhưng chính sách cũ vẫn chạy, nên header danh tính giả vẫn tới backend; tên công cụ kèm tiền tố target làm công cụ bị ẩn không báo; NetworkPolicy trên kind dùng phần mềm mạng mặc định được chấp nhận nhưng không chặn gì. Cả ba lỗi chỉ lộ ra nhờ kiểm thử đầu cuối, nên kiểm thử theo ma trận kỳ vọng là cơ chế an toàn chính của hệ thống xây bằng cấu hình.
+
+Bài học thứ hai là phải kiểm chứng hành vi của công cụ thay vì suy ra từ tài liệu. Thí nghiệm chồng lấn cho thấy chính sách cho phép của agentgateway được nối bằng phép HOẶC, nhưng chính sách từ chối thắng mọi chính sách cho phép và xét theo người gọi chứ không theo vai trò; nếu chỉ có chính sách từ chối, backend vẫn mở cho mọi token hợp lệ, nên mọi quy tắc được gom vào một chính sách cho phép duy nhất. Bài học thứ ba là vai trò của agent nên chia theo năng lực chứ không theo chức danh: vai trò như \texttt{data\_engineer} cấp thừa quyền cho agent, còn chia theo mức đọc và ghi trên từng hệ thống giữ ma trận đủ đơn giản để kiểm thử tự động.
+
+\subsection{Hướng phát triển}
+
+Trước tiên cần khép các khoảng trống bằng chứng: lưu đầu ra cho chiều từ chối của xác thực, khẳng định tự động rằng backend không nhận token gốc và chạy lại kiểm thử đầu cuối trên cấu hình hợp nhất. Tiếp đó là phân quyền ở mức tài nguyên trên backend thật, bắt đầu từ Kubernetes RBAC theo namespace, và hoàn thiện trao đổi token cho OpenMetadata. Xa hơn là xoay vòng và thu hồi secret của agent, cảnh báo chủ động khi lệnh bị chặn tăng bất thường, đưa kiểm thử vào tích hợp liên tục và mở rộng sang agent hành động thay mặt người dùng.
+
+\subsection{Kiến nghị}
+
+Đối với đơn vị, tôi kiến nghị dùng một điểm truy cập MCP duy nhất ngay từ khi đưa AI Agent vào vận hành, cấp cho mỗi agent danh tính riêng và vai trò theo năng lực, tách quyền ghi khỏi quyền đọc, và yêu cầu mọi thay đổi chính sách đi kèm cập nhật ma trận kỳ vọng. Đối với khoa, tôi kiến nghị bổ sung nội dung thực hành về danh tính và phân quyền cho hệ thống tự động, như OAuth 2.0 giữa máy với máy và kiểm soát truy cập theo vai trò.
