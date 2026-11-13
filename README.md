@@ -4,11 +4,25 @@
 
 **One authenticated, role-filtered MCP endpoint for every AI agent and every tool.**
 
-[![agentgateway](https://img.shields.io/badge/agentgateway-v1.5.0-7B3FE4)](https://agentgateway.dev)
-[![Keycloak](https://img.shields.io/badge/Keycloak-26.2-4D4D4D?logo=keycloak)](https://www.keycloak.org)
-[![Kubernetes](https://img.shields.io/badge/kind-Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kind.sigs.k8s.io)
-[![MCP](https://img.shields.io/badge/MCP-Streamable%20HTTP-111111)](https://modelcontextprotocol.io)
-[![Grafana](https://img.shields.io/badge/Grafana-allow%2Fdeny-F46800?logo=grafana&logoColor=white)](observability/grafana/)
+<p>
+  <a href="https://agentgateway.dev"><img src="https://img.shields.io/badge/agentgateway-v1.5.0-7B3FE4?style=for-the-badge&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMzE1IiBoZWlnaHQ9IjMxNSIgdmlld0JveD0iMjUwIDI1MCA1NjUgNTY1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8cGF0aCBkPSJNNTMyLjg2IDM5MC44MzFDNTcxLjY4NCAzOTAuODMxIDYwMy4xNTcgMzU5LjQ4MSA2MDMuMTU3IDMyMC44MDlDNjAzLjE1NyAyODIuMTM2IDU3MS42ODQgMjUwLjc4NiA1MzIuODYgMjUwLjc4NkM0OTQuMDM2IDI1MC43ODYgNDYyLjU2MiAyODIuMTM2IDQ2Mi41NjIgMzIwLjgwOUM0NjIuNTYyIDM1OS40ODEgNDk0LjAzNiAzOTAuODMxIDUzMi44NiAzOTAuODMxWiIgZmlsbD0iIzc3MzRiZSIvPgo8cGF0aCBkPSJNNTMyLjg2IDYwMi4yNjhDNTcxLjY4NCA2MDIuMjY4IDYwMy4xNTcgNTcwLjkxOCA2MDMuMTU3IDUzMi4yNDZDNjAzLjE1NyA0OTMuNTczIDU3MS42ODQgNDYyLjIyMyA1MzIuODYgNDYyLjIyM0M0OTQuMDM2IDQ2Mi4yMjMgNDYyLjU2MiA0OTMuNTczIDQ2Mi41NjIgNTMyLjI0NkM0NjIuNTYyIDU3MC45MTggNDk0LjAzNiA2MDIuMjY4IDUzMi44NiA2MDIuMjY4WiIgZmlsbD0iIzc3MzRiZSIvPgo8cGF0aCBkPSJNNTczLjEwOSA0MjYuNDMxQzU3My4xMDkgNDAxLjE5OSA1ODAuMzc0IDM3Ny41MzIgNTkyLjc0NSAzNTcuMzg2TDUzMi44NTUgMzIwLjYxNEw0NzIuOTY1IDM1Ny4zODZDNDg1LjMzNiAzNzcuNTMyIDQ5Mi42MDEgNDAxLjAwMyA0OTIuNjAxIDQyNi40MzFDNDkyLjYwMSA0NTEuODU4IDQ4NS4zMzYgNDc1LjMyOSA0NzIuOTY1IDQ5NS40NzVMNTMyLjg1NSA1MzIuMjQ3TDU5Mi43NDUgNDk1LjQ3NUM1ODAuMzc0IDQ3NS4zMjkgNTczLjEwOSA0NTEuODU4IDU3My4xMDkgNDI2LjQzMVoiIGZpbGw9IiM3NzM0YmUiLz4KPHBhdGggZD0iTTcwNS40NTMgNDk2LjQ1MkM3NDQuMjc3IDQ5Ni40NTIgNzc1Ljc1IDQ2NS4xMDEgNzc1Ljc1IDQyNi40MjlDNzc1Ljc1IDM4Ny43NTYgNzQ0LjI3NyAzNTYuNDA2IDcwNS40NTMgMzU2LjQwNkM2NjYuNjI5IDM1Ni40MDYgNjM1LjE1NiAzODcuNzU2IDYzNS4xNTYgNDI2LjQyOUM2MzUuMTU2IDQ2NS4xMDEgNjY2LjYyOSA0OTYuNDUyIDcwNS40NTMgNDk2LjQ1MloiIGZpbGw9IiM3NzM0YmUiLz4KPHBhdGggZD0iTTcwNS40NTMgNzA3Ljg4OUM3NDQuMjc3IDcwNy44ODkgNzc1Ljc1IDY3Ni41MzggNzc1Ljc1IDYzNy44NjZDNzc1Ljc1IDU5OS4xOTQgNzQ0LjI3NyA1NjcuODQzIDcwNS40NTMgNTY3Ljg0M0M2NjYuNjI5IDU2Ny44NDMgNjM1LjE1NiA1OTkuMTk0IDYzNS4xNTYgNjM3Ljg2NkM2MzUuMTU2IDY3Ni41MzggNjY2LjYyOSA3MDcuODg5IDcwNS40NTMgNzA3Ljg4OVoiIGZpbGw9IiM3NzM0YmUiLz4KPHBhdGggZD0iTTc0NS43MDMgNTMyLjI0NkM3NDUuNzAzIDUwNy4wMTQgNzUyLjk2OCA0ODMuMzQ4IDc2NS4zMzkgNDYzLjIwMUw3MDUuNDQ5IDQyNi40M0w2NDUuNTU5IDQ2My4yMDFDNjU3LjkyOSA0ODMuMzQ4IDY2NS4xOTUgNTA2LjgxOSA2NjUuMTk1IDUzMi4yNDZDNjY1LjE5NSA1NTcuNjczIDY1Ny45MjkgNTgxLjE0NSA2NDUuNTU5IDYwMS4yOTFMNzA1LjQ0OSA2MzguMDYyTDc2NS4zMzkgNjAxLjI5MUM3NTIuOTY4IDU4MS4xNDUgNzQ1LjcwMyA1NTcuNjczIDc0NS43MDMgNTMyLjI0NloiIGZpbGw9IiM3NzM0YmUiLz4KPHBhdGggZD0iTTM2MC4wNTkgNDk2LjQ1MkMzOTguODgzIDQ5Ni40NTIgNDMwLjM1NiA0NjUuMTAxIDQzMC4zNTYgNDI2LjQyOUM0MzAuMzU2IDM4Ny43NTYgMzk4Ljg4MyAzNTYuNDA2IDM2MC4wNTkgMzU2LjQwNkMzMjEuMjM1IDM1Ni40MDYgMjg5Ljc2MiAzODcuNzU2IDI4OS43NjIgNDI2LjQyOUMyODkuNzYyIDQ2NS4xMDEgMzIxLjIzNSA0OTYuNDUyIDM2MC4wNTkgNDk2LjQ1MloiIGZpbGw9IiM3NzM0YmUiLz4KPHBhdGggZD0iTTM2MC4wNTkgNzA3Ljg4N0MzOTguODgzIDcwNy44ODcgNDMwLjM1NiA2NzYuNTM3IDQzMC4zNTYgNjM3Ljg2NUM0MzAuMzU2IDU5OS4xOTIgMzk4Ljg4MyA1NjcuODQyIDM2MC4wNTkgNTY3Ljg0MkMzMjEuMjM1IDU2Ny44NDIgMjg5Ljc2MiA1OTkuMTkyIDI4OS43NjIgNjM3Ljg2NUMyODkuNzYyIDY3Ni41MzcgMzIxLjIzNSA3MDcuODg3IDM2MC4wNTkgNzA3Ljg4N1oiIGZpbGw9IiM3NzM0YmUiLz4KPHBhdGggZD0iTTQwMC4zMDggNTMyLjI0NUM0MDAuMzA4IDUwNy4wMTMgNDA3LjU3MyA0ODMuMzQ2IDQxOS45NDQgNDYzLjJMMzYwLjA1NCA0MjYuNDI4TDMwMC4xNjQgNDYzLjJDMzEyLjUzNSA0ODMuMzQ2IDMxOS44IDUwNi44MTcgMzE5LjggNTMyLjI0NUMzMTkuOCA1NTcuNjcyIDMxMi41MzUgNTgxLjE0MyAzMDAuMTY0IDYwMS4yODlMMzYwLjA1NCA2MzguMDYxTDQxOS45NDQgNjAxLjI4OUM0MDcuNTczIDU4MS4xNDMgNDAwLjMwOCA1NTcuNjcyIDQwMC4zMDggNTMyLjI0NVoiIGZpbGw9IiM3NzM0YmUiLz4KPHBhdGggZD0iTTUzMi44NiA4MTMuNTExQzU3MS42ODQgODEzLjUxMSA2MDMuMTU3IDc4Mi4xNiA2MDMuMTU3IDc0My40ODhDNjAzLjE1NyA3MDQuODE2IDU3MS42ODQgNjczLjQ2NSA1MzIuODYgNjczLjQ2NUM0OTQuMDM2IDY3My40NjUgNDYyLjU2MiA3MDQuODE2IDQ2Mi41NjIgNzQzLjQ4OEM0NjIuNTYyIDc4Mi4xNiA0OTQuMDM2IDgxMy41MTEgNTMyLjg2IDgxMy41MTFaIiBmaWxsPSIjNzczNGJlIi8%2BCjwvc3ZnPgo%3D" alt="agentgateway"></a>
+  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP-Streamable_HTTP-000000?style=for-the-badge&logo=modelcontextprotocol&logoColor=white" alt="MCP"></a>
+  <a href="https://www.keycloak.org"><img src="https://img.shields.io/badge/Keycloak-26.2-4D4D4D?style=for-the-badge&logo=keycloak&logoColor=white" alt="Keycloak"></a>
+  <img src="https://img.shields.io/badge/OAuth_2.0-JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT">
+</p>
+<p>
+  <a href="https://kind.sigs.k8s.io"><img src="https://img.shields.io/badge/Kubernetes-kind-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white" alt="Kubernetes"></a>
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white" alt="Helm">
+  <img src="https://img.shields.io/badge/Grafana-Loki_·_Alloy-F46800?style=for-the-badge&logo=grafana&logoColor=white" alt="Grafana">
+</p>
+<p>
+  <img src="https://img.shields.io/badge/Python-FastMCP-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Apache_Airflow-017CEE?style=for-the-badge&logo=apacheairflow&logoColor=white" alt="Airflow">
+  <img src="https://img.shields.io/badge/Apache_Spark-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white" alt="Spark">
+  <img src="https://img.shields.io/badge/Bash-4EAA25?style=for-the-badge&logo=gnubash&logoColor=white" alt="Bash">
+  <img src="https://img.shields.io/badge/PowerShell-WSL-5391FE?style=for-the-badge&logo=data:image/svg%2Bxml;base64,PHN2ZyBmaWxsPSJ3aGl0ZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWw6c3BhY2U9InByZXNlcnZlIiB2aWV3Qm94PSIwIDAgMTI4IDEyOCI%2BPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMTI0LjkxMiAxOS4zNThjLS45NjItMS4xOTktMi40MjItMS44NTgtNC4xMTEtMS44NThoLTkyLjYxYy0zLjM5NyAwLTYuNjY1IDIuNjQyLTcuNDQ0IDYuMDE1TDIuMTYyIDEwNC4wMjJjLS4zOTYgMS43MTEtLjA1OCAzLjM5NC45MjYgNC42MTkuOTYzIDEuMTk5IDIuNDIzIDEuODU4IDQuMTExIDEuODU4di4wMDFIOTkuODFjMy4zOTYgMCA2LjY2NS0yLjY0MyA3LjQ0My02LjAxNmwxOC41ODYtODAuNTA4Yy4zOTUtMS43MTEuMDU3LTMuMzk1LS45MjctNC42MTh6bS05OC41ODkgNzcuMTdjLTEuNzQzLTIuMzk3LTEuMzIzLTUuNjczLjk0LTcuMzE4bDM3LjM3OS0yNy4wNjd2LS41NTZMNDEuMTU3IDM2LjYwM2MtMS45MTYtMi4wMzgtMS43MTYtNS4zMzMuNDQ1LTcuMzYxIDIuMTYyLTIuMDI3IDUuNDY2LTIuMDE5IDcuMzgyLjAxOWwyOC4xOCAyOS45NzljMS42IDEuNzAyIDEuNzE4IDQuMjc5LjQ1NyA2LjI2NC0uMzg0Ljc3NC0xLjE4MiAxLjYyOC0yLjU5MyAyLjYxOGwtNDEuNDUgMjkuNzY5Yy0yLjI2MyAxLjY0NC01LjUxMiAxLjAzNC03LjI1NS0xLjM2M3ptNTkuNTQzLjUzOEg2My41MzJjLTIuNTk3IDAtNC43MDItMi4wODItNC43MDItNC42NXMyLjEwNS00LjY1IDQuNzAyLTQuNjVoMjIuMzMzYzIuNTk3IDAgNC43MDIgMi4wODIgNC43MDIgNC42NXMtMi4xMDQgNC42NS00LjcwMSA0LjY1eiIgY2xpcC1ydWxlPSJldmVub2RkIi8%2BPC9zdmc%2BCg%3D%3D" alt="PowerShell">
+</p>
 
 </div>
 
@@ -23,48 +37,6 @@ This project puts **[agentgateway](https://agentgateway.dev)** in front of five 
 | 🪪 **Forward identity** | Backends learn who called; the caller's token never leaves the gateway |
 | 🧱 **Isolate the network** | NetworkPolicy makes the gateway the only way into the backends |
 | 📊 **Audit** | Every allow and deny is logged and charted in Grafana |
-
-## Tech stack
-
-<table align="center">
-  <tr>
-    <th>Gateway &amp; protocol</th>
-    <th>Identity</th>
-    <th>Platform</th>
-    <th>Observability</th>
-    <th>MCP backends</th>
-    <th>Tooling</th>
-  </tr>
-  <tr>
-    <td align="center">
-      <a href="https://agentgateway.dev"><img src="https://agentgateway.dev/favicon.svg" height="40" alt="agentgateway"></a><br><sub>agentgateway</sub><br><br>
-      <a href="https://modelcontextprotocol.io"><img src="https://cdn.simpleicons.org/modelcontextprotocol" height="40" alt="MCP"></a><br><sub>MCP</sub>
-    </td>
-    <td align="center">
-      <a href="https://www.keycloak.org"><img src="https://cdn.simpleicons.org/keycloak" height="40" alt="Keycloak"></a><br><sub>Keycloak</sub><br><br>
-      <img src="https://cdn.simpleicons.org/jsonwebtokens" height="40" alt="JWT"><br><sub>JWT / OAuth 2.0</sub>
-    </td>
-    <td align="center">
-      <a href="https://kind.sigs.k8s.io"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/kubernetes/kubernetes-original.svg" height="40" alt="Kubernetes"></a><br><sub>Kubernetes (kind)</sub><br><br>
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/docker/docker-original.svg" height="40" alt="Docker"><br><sub>Docker</sub><br><br>
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/helm/helm-original.svg" height="40" alt="Helm"><br><sub>Helm</sub>
-    </td>
-    <td align="center">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/grafana/grafana-original.svg" height="40" alt="Grafana"><br><sub>Grafana · Loki · Alloy</sub><br><br>
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/prometheus/prometheus-original.svg" height="40" alt="Prometheus"><br><sub>Metrics</sub>
-    </td>
-    <td align="center">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/apacheairflow/apacheairflow-original.svg" height="40" alt="Apache Airflow"><br><sub>Airflow</sub><br><br>
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/apachespark/apachespark-original.svg" height="40" alt="Apache Spark"><br><sub>Spark History</sub><br><br>
-      <img src="https://raw.githubusercontent.com/open-metadata/OpenMetadata/main/openmetadata-ui/src/main/resources/ui/public/favicon.png" height="40" alt="OpenMetadata"><br><sub>OpenMetadata</sub>
-    </td>
-    <td align="center">
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/python/python-original.svg" height="40" alt="Python"><br><sub>Python (FastMCP)</sub><br><br>
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/bash/bash-original.svg" height="40" alt="Bash"><br><sub>Bash</sub><br><br>
-      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/powershell/powershell-original.svg" height="40" alt="PowerShell"><br><sub>PowerShell</sub>
-    </td>
-  </tr>
-</table>
 
 ---
 
