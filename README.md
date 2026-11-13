@@ -123,7 +123,7 @@ A request passes through a chain of checkpoints, and each one answers a differen
 
 ```
 deploy/            everything `kubectl apply`-able, one folder per concern
-  cluster/           notes on the kind cluster and CNI (kind config planned, not written yet)
+  cluster/           kind cluster config and CNI notes
   agentgateway/      Gateway, AgentgatewayBackend, HTTPRoute
   keycloak/          dev-mode Deployment + realm setup script
   auth/              JWT authentication + identity-header transformation
@@ -210,7 +210,7 @@ The admin UI at `http://localhost:15000/ui/` is read-only and for debugging only
 - [docs/agentgateway-observability-review.md](docs/agentgateway-observability-review.md): access logs, metrics, traces, admin UI and tool denials on agentgateway v1.5.0
 - [observability/grafana/README.md](observability/grafana/README.md): the allow/deny dashboard
 - Each folder has a `README.md` saying what it holds, which checkpoint it belongs to and how to check it
-- Planned, not written yet: `docs/02-architecture.md` and `docs/03-implementation-plan.md` (see [docs/README.md](docs/README.md))
+- [docs/diagrams/](docs/diagrams/): architecture diagrams (draw.io + PNG) and the system flow description
 - [AI Agent Tool Access](docs/ai-agent-tool-access.md): identities, capability roles and the 21-tool authorization matrix
 - [Implementation plan](docs/idea.md): phased rollout and acceptance criteria
 - [Legacy deployment guideline](local-docs/mcp-gateway-guideline.md): older design notes; validate all fields marked *check*

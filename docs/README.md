@@ -2,14 +2,10 @@
 
 **What:** design documentation, as opposed to the command-level guideline in `local-docs/`.
 
-**Contains (planned):**
-- `02-architecture.md`: design and reasoning (checkpoints, decisions A1–A7).
-- `03-implementation-plan.md`: backends, environment, folder layout, build order, tests, task table, risks.
-
-**Current design documents:**
+**Contents:**
 - `ai-agent-tool-access.md`: AI Agent identity, capability roles and the role-to-tool matrix.
 - `idea.md`: phased implementation plan for AI Agent authentication, tool RBAC, tests and backend enforcement.
-
-**README mapping:** the *Docs* section links to both files. They don't exist yet, so those links are currently broken.
+- `agentgateway-observability-review.md`: access logs, metrics, traces, admin UI and tool denials on agentgateway v1.5.0.
+- `diagrams/`: architecture diagrams (draw.io sources + PNG) and `system-flow.md`, which explains the numbered arrows.
 
 **Split:** `docs/` explains why; `local-docs/mcp-gateway-guideline.md` gives the commands.
