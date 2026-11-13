@@ -940,7 +940,7 @@ Hạn chế lớn nhất là bằng chứng và cấu hình hiện tại không 
 
 Đề tài đã xây dựng được một hệ thống chứng minh khái niệm trong đó mọi lệnh gọi công cụ của AI Agent đi qua một điểm truy cập MCP duy nhất. Cả 21 công cụ của năm hệ thống gọi được qua gateway (lượt gọi đủ 21 công cụ chạy trước khi bật JWT); mười danh tính agent nhận đúng vai trò trong token, nhìn thấy đúng danh mục công cụ và bị chặn đúng ở công cụ ngoài quyền; Pod ở namespace \texttt{default} không kết nối được tới backend radar, trong khi gateway vẫn kết nối được; và qua năm lần \textit{warm start} liên tiếp, hệ thống áp xong cấu hình trong trung bình 4,15 giây và sẵn sàng phục vụ agent sau khoảng 5,2 giây, kiểm thử phân quyền đạt cả năm lần và access log luôn ghi đúng 9 lệnh cho phép, 9 lệnh bị chặn như ma trận kỳ vọng. Toàn bộ được xây bằng cấu hình các thành phần mã nguồn mở, không có mã gateway riêng.
 
-Trong nhóm, em phụ trách phần đưa AI Agent vào hệ thống một cách kiểm soát được và chứng minh rằng sự kiểm soát đó hoạt động. Cụ thể, em thiết kế danh tính cho mười agent theo luồng client credentials, chia vai trò theo năng lực đọc/ghi trên từng hệ thống thay vì theo chức danh, và cô lập backend bằng NetworkPolicy để agent không thể vượt qua gateway. Em khảo sát khả năng quan sát của agentgateway, thực hiện thí nghiệm chồng lấn chính sách, xây dashboard allow/deny trên Grafana và lớp bọc PowerShell cho script khởi động. Toàn bộ phép đo ở Chương~5 do em chạy và lưu đầu ra, từ gọi đủ 21 công cụ, đối chiếu 210 ô ma trận ở \texttt{tools/list}, kiểm tra claim \texttt{roles} của mười agent, đến đo năm lần \textit{warm start} và đối chiếu số đếm allow/deny. Các thành phần nền tảng mà phép đo chạy trên đó, gồm mock server, realm Keycloak, xác thực JWT và bộ quy tắc phân quyền cho người dùng, do thành viên Quân xây dựng; em bổ sung vai trò và quy tắc phân quyền cho agent trên nền đó.
+Trong nhóm, em phụ trách phần đưa AI Agent vào hệ thống một cách kiểm soát được và chứng minh rằng sự kiểm soát đó hoạt động. Cụ thể, em thiết kế danh tính cho mười agent theo luồng client credentials, chia vai trò theo năng lực đọc/ghi trên từng hệ thống thay vì theo chức danh, và cô lập backend bằng NetworkPolicy để agent không thể vượt qua gateway. Em khảo sát khả năng quan sát của agentgateway, tham gia thí nghiệm chồng lấn chính sách, xây dashboard allow/deny trên Grafana và lớp bọc PowerShell cho script khởi động. Toàn bộ phép đo ở Chương~5 do em chạy và lưu đầu ra, từ gọi đủ 21 công cụ, đối chiếu 210 ô ma trận ở \texttt{tools/list}, kiểm tra claim \texttt{roles} của mười agent, đến đo năm lần \textit{warm start} và đối chiếu số đếm allow/deny. Các thành phần nền tảng mà phép đo chạy trên đó, gồm mock server, realm Keycloak, xác thực JWT và bộ quy tắc phân quyền cho người dùng, do thành viên Quân xây dựng; em bổ sung vai trò và quy tắc phân quyền cho agent trên nền đó.
 
 Đối chiếu với mục Đánh giá, mọi phép đo đã chạy đều cho kết quả bằng kỳ vọng. Bốn yêu cầu S1, S3, S4 và O1 dừng ở mức ``Một phần'' vì còn thiếu đầu ra hoặc phạm vi thử còn hẹp: chưa lưu đầu ra cho lỗi 401 và token sai, chưa lưu đầu ra chứng minh token gốc không tới backend, chưa thăm dò backend ngoài cụm, và chưa đo \textit{cold start}. Đây là phần việc em tự đánh giá là còn thiếu và sẽ ưu tiên bổ sung.
 
@@ -1253,14 +1253,14 @@ Dựng MCP Gateway trên Kubernetes & 30/09 -- 02/10 & \multicolumn{2}{c|}{Cả 
 Mock MCP server cho năm backend (21 công cụ) & 05/10 -- 07/10 & Quân & Huy \\ \hline
 Khảo sát khả năng quan sát của agentgateway (log, metric, trace, admin UI) & 05/10 -- 08/10 & Huy & -- \\ \hline
 Kiểm chứng gọi đủ 21 công cụ qua gateway & 08/10 & Huy & -- \\ \hline
-Thí nghiệm chồng lấn chính sách phân quyền & 08/10 & Quân & -- \\ \hline
+Thí nghiệm chồng lấn chính sách phân quyền & 08/10 & Quân & Huy \\ \hline
 Realm Keycloak, xác thực JWT và quy tắc phân quyền theo công cụ & 07/10 -- 11/10 & Quân & Huy \\ \hline
 Dựng và dọn môi trường bằng một lệnh & 06/10 -- 14/10 & \multicolumn{2}{c|}{Quân (bản Linux), Huy (bản Windows)} \\ \hline
 README, QUICKSTART và tài liệu dự án & 05/10 -- 14/10 & Quân & Huy \\ \hline
 Dashboard allow/deny trên Grafana & 09/10 -- 12/10 & Huy & -- \\ \hline
-Kiểm chứng lọc danh mục công cụ theo vai trò & 12/10 & Quân & -- \\ \hline
-Kiểm chứng từ chối lệnh gọi và các trường hợp biên & 13/10 & Quân & -- \\ \hline
-Tổng hợp kết quả giai đoạn 1 vào báo cáo nháp & 12/10 -- 15/10 & Quân & Huy \\ \hline
+Kiểm chứng lọc danh mục công cụ theo vai trò & 12/10 & Quân & Huy \\ \hline
+Kiểm chứng từ chối lệnh gọi và các trường hợp biên & 13/10 & Quân & Huy \\ \hline
+Tổng hợp kết quả giai đoạn 1 vào báo cáo nháp & 12/10 -- 15/10 & Quân & -- \\ \hline
 Danh tính AI Agent, cô lập mạng bằng NetworkPolicy và kiểm thử phân quyền theo agent & 22/10 -- 29/10 & Huy & Quân \\ \hline
 Đo \textit{warm start} và lưu đầu ra kiểm chứng (benchmark, dashboard) & 05/11 & Huy & -- \\ \hline
 Viết báo cáo & -- & \multicolumn{2}{c|}{Chia theo chương, đọc chéo} \\ \hline
