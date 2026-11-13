@@ -24,6 +24,48 @@ This project puts **[agentgateway](https://agentgateway.dev)** in front of five 
 | 🧱 **Isolate the network** | NetworkPolicy makes the gateway the only way into the backends |
 | 📊 **Audit** | Every allow and deny is logged and charted in Grafana |
 
+## Tech stack
+
+<table align="center">
+  <tr>
+    <th>Gateway &amp; protocol</th>
+    <th>Identity</th>
+    <th>Platform</th>
+    <th>Observability</th>
+    <th>MCP backends</th>
+    <th>Tooling</th>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="https://agentgateway.dev"><img src="https://agentgateway.dev/favicon.svg" height="40" alt="agentgateway"></a><br><sub>agentgateway</sub><br><br>
+      <a href="https://modelcontextprotocol.io"><img src="https://cdn.simpleicons.org/modelcontextprotocol" height="40" alt="MCP"></a><br><sub>MCP</sub>
+    </td>
+    <td align="center">
+      <a href="https://www.keycloak.org"><img src="https://cdn.simpleicons.org/keycloak" height="40" alt="Keycloak"></a><br><sub>Keycloak</sub><br><br>
+      <img src="https://cdn.simpleicons.org/jsonwebtokens" height="40" alt="JWT"><br><sub>JWT / OAuth 2.0</sub>
+    </td>
+    <td align="center">
+      <a href="https://kind.sigs.k8s.io"><img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/kubernetes/kubernetes-original.svg" height="40" alt="Kubernetes"></a><br><sub>Kubernetes (kind)</sub><br><br>
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/docker/docker-original.svg" height="40" alt="Docker"><br><sub>Docker</sub><br><br>
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/helm/helm-original.svg" height="40" alt="Helm"><br><sub>Helm</sub>
+    </td>
+    <td align="center">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/grafana/grafana-original.svg" height="40" alt="Grafana"><br><sub>Grafana · Loki · Alloy</sub><br><br>
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/prometheus/prometheus-original.svg" height="40" alt="Prometheus"><br><sub>Metrics</sub>
+    </td>
+    <td align="center">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/apacheairflow/apacheairflow-original.svg" height="40" alt="Apache Airflow"><br><sub>Airflow</sub><br><br>
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/apachespark/apachespark-original.svg" height="40" alt="Apache Spark"><br><sub>Spark History</sub><br><br>
+      <img src="https://raw.githubusercontent.com/open-metadata/OpenMetadata/main/openmetadata-ui/src/main/resources/ui/public/favicon.png" height="40" alt="OpenMetadata"><br><sub>OpenMetadata</sub>
+    </td>
+    <td align="center">
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/python/python-original.svg" height="40" alt="Python"><br><sub>Python (FastMCP)</sub><br><br>
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/bash/bash-original.svg" height="40" alt="Bash"><br><sub>Bash</sub><br><br>
+      <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.16.0/icons/powershell/powershell-original.svg" height="40" alt="PowerShell"><br><sub>PowerShell</sub>
+    </td>
+  </tr>
+</table>
+
 ---
 
 ## Architecture
