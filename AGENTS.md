@@ -40,7 +40,6 @@ The root README and guideline have some stale descriptions (they say three backe
 - Tool authorization is deny-by-default. Role rules are intended to be OR-ed; a multi-role user receives the union.
 - Never forward a caller's original token to ordinary backends. Header identity must be set/replaced only after JWT validation, and depends on enforced backend-only NetworkPolicy. OpenMetadata is intended to use an exchanged, audience-scoped token.
 - Do not commit client secrets, access tokens, decoded sensitive claims, or evidence containing them. The mock logger intentionally records only selected non-secret token claims.
-- `servers/k8s/mcp-backend.yaml` is a pasted shell heredoc, not a plain Kubernetes manifest; do not pass it directly to `kubectl apply -f`.
 
 ## Useful verification commands
 
