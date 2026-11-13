@@ -268,3 +268,7 @@ Internship project at VietCredit, Faculty of Information Systems, University of 
 - **Nguyễn Trần Thái Huy**
 
 Supervisor: Assoc. Prof. Dr. Lê Hoành Sử.
+
+## Acknowledgements
+
+Special thanks to our project mentor **[thanhENC](https://github.com/thanhENC)** for proposing the problem, guiding the design of the gateway and agent access model, and reviewing our work throughout the internship.
