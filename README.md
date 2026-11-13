@@ -264,7 +264,7 @@ This is a proof of concept on a local kind cluster, not a production deployment.
 
 Internship project at VietCredit, Faculty of Information Systems, University of Economics and Law (VNU-HCM), 2026.
 
-- **Vòng Hữu Quân**: mock MCP servers, Keycloak realm, JWT and RBAC rules, Linux automation, documentation
-- **Nguyễn Trần Thái Huy**: AI agent identities, NetworkPolicy, observability and Grafana, Windows automation, testing and evaluation
+- **Vòng Hữu Quân**
+- **Nguyễn Trần Thái Huy**
 
 Supervisor: Assoc. Prof. Dr. Lê Hoành Sử.
