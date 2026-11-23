@@ -8,3 +8,9 @@ local-docs
 servers\k8s
 report/private/
 report/images/chu-ky-co-quan.jpg
+
+# Personal report material (kept local only)
+report/
+Kt/
+KT _ Phiếu đánh giá.docx
+check.md
