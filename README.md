@@ -40,6 +40,8 @@ This project puts **[agentgateway](https://agentgateway.dev)** in front of five 
 
 ---
 
+The optional Grafana audit dashboard is under `observability/grafana/`; it visualizes allowed and denied `tools/call` events by caller, role, target and tool.
+
 ## Architecture
 
 <p align="center">
