@@ -43,7 +43,7 @@ This project puts **[agentgateway](https://agentgateway.dev)** in front of five 
 ## Architecture
 
 <p align="center">
-  <img src="report/images/system-architecture.png" alt="System architecture: clients, agentgateway data plane with five checks, Keycloak, MCP backends and observability on kind" width="900">
+  <img src="images/system-architecture.png" alt="System architecture: clients, agentgateway data plane with five checks, Keycloak, MCP backends and observability on kind" width="900">
 </p>
 
 Every tool call passes five checks in the gateway's data plane:
@@ -92,7 +92,7 @@ sequenceDiagram
 Everything runs on one Docker host: the kind node holds the gateway, Keycloak, mocks, radar and the observability stack; OpenMetadata and Spark History run as separate Compose projects on the same `kind` network.
 
 <p align="center">
-  <img src="report/images/docker-map.png" alt="Docker map of the kind node, OpenMetadata and Spark History compose projects with ports and volumes" width="900">
+  <img src="images/docker-map.png" alt="Docker map of the kind node, OpenMetadata and Spark History compose projects with ports and volumes" width="900">
   <br><sub>Containers, exposed ports and volumes. Solid arrows: published ports; dashed arrows: traffic and storage.</sub>
 </p>
 
@@ -150,7 +150,7 @@ All numbers come from saved test output in [`evidence/`](evidence/).
 | *Warm start*: ready for agents (mean of 5) | – | **≈ 5.2 s** |
 
 <p align="center">
-  <img src="report/images/grafana-allow-deny.png" alt="Grafana allow/deny dashboard showing 9 allowed and 9 denied tool calls by user, role, target and tool" width="900">
+  <img src="images/grafana-allow-deny.png" alt="Grafana allow/deny dashboard showing 9 allowed and 9 denied tool calls by user, role, target and tool" width="900">
   <br><sub>Grafana allow/deny dashboard after one RBAC test run: 9 allowed, 9 denied, broken down by agent, role, target and tool.</sub>
 </p>
 
